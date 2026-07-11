@@ -1,0 +1,27 @@
+deck "Acme AI — Board Deck"
+theme paper
+
+dataset pipeline
+  row Committed 3.2
+  row "Best case" 5.8
+  row Pipeline 9.4
+
+slide title
+  heading "Acme AI — Board Deck"
+  subtitle "Q4 2026"
+
+slide metrics
+  heading "Scorecard"
+  metric "ARR" "$4.4M" "+42%"
+  metric "Logos" "38" "+11"
+  metric "Runway" "26 mo" "+4mo"
+
+slide chart.bar
+  heading "Next-quarter pipeline ($M)"
+  bind pipeline
+
+slide bullets
+  heading "Asks"
+  point "Approve Series A raise timing"
+  point "Two enterprise intros"
+  point "Comp bands for first VP hires"

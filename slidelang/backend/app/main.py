@@ -1,0 +1,96 @@
+"""SlideLang API (FastAPI).
+
+Routes:
+  POST /api/author     {prompt, use_model?, basis?}  -> agent authoring result + trace
+  POST /api/compile    {spec}                          -> compiler build result
+  POST /api/publish    {spec}                          -> {id, url}
+  GET  /d/{id}                                          -> published deck (JSON build)
+  POST /api/kpi/event  {kind, ...}                      -> record a KPI event
+  GET  /api/kpi/metrics                                 -> computed success metrics
+  GET  /api/eval                                        -> run the compiler eval suite
+  GET  /api/health                                      -> liveness + model status
+"""
+from __future__ import annotations
+import logging
+import time
+
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+
+from .agent.loop import author
+from .compiler.pipeline import build
+from .config import settings
+from .eval.harness import run_compiler_evals
+from .kpi import store as kpi
+from .logging_conf import configure, log_event, new_request_id
+from .schemas import AuthorRequest, CompileRequest, KpiEvent, PublishRequest
+
+configure()
+log = logging.getLogger("slidelang.api")
+app = FastAPI(title="SlideLang API", version="1.0.0")
+app.add_middleware(
+    CORSMiddleware, allow_origins=settings.allow_origins,
+    allow_methods=["*"], allow_headers=["*"],
+)
+
+_PUBLISHED: dict[str, str] = {}
+
+
+@app.middleware("http")
+async def request_context(request: Request, call_next):
+    rid = new_request_id()
+    start = time.time()
+    response = await call_next(request)
+    log_event(log, "request", method=request.method, path=request.url.path,
+              status=response.status_code, latency_ms=int((time.time() - start) * 1000))
+    response.headers["x-request-id"] = rid
+    return response
+
+
+@app.get("/api/health")
+async def health():
+    return {"ok": True, "model_enabled": settings.model_enabled, "model": settings.model}
+
+
+@app.post("/api/author")
+async def api_author(req: AuthorRequest):
+    result = await author(req.prompt, use_model=req.use_model, basis=req.basis)
+    return result.to_dict()
+
+
+@app.post("/api/compile")
+async def api_compile(req: CompileRequest):
+    return build(req.spec)
+
+
+@app.post("/api/publish")
+async def api_publish(req: PublishRequest):
+    import uuid
+    did = uuid.uuid4().hex[:7]
+    _PUBLISHED[did] = req.spec
+    return {"id": did, "url": f"/d/{did}"}
+
+
+@app.get("/d/{deck_id}")
+async def api_get_deck(deck_id: str):
+    spec = _PUBLISHED.get(deck_id)
+    if spec is None:
+        return JSONResponse({"error": "not found"}, status_code=404)
+    return build(spec)
+
+
+@app.post("/api/kpi/event")
+async def api_kpi_event(ev: KpiEvent):
+    rec = kpi.record(ev.model_dump())
+    return {"recorded": True, "ts": rec["ts"]}
+
+
+@app.get("/api/kpi/metrics")
+async def api_kpi_metrics():
+    return kpi.metrics()
+
+
+@app.get("/api/eval")
+async def api_eval():
+    return run_compiler_evals()

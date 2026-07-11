@@ -1,0 +1,33 @@
+deck "Acme AI — Investor Update"
+theme midnight
+
+dataset arr
+  row Q1 1.2
+  row Q2 2.0
+  row Q3 3.1
+  row Q4 4.4
+
+slide title
+  heading "Acme AI — Investor Update"
+  subtitle "Q4 2026 · Seed to Series A"
+  notes "Lead with 3.7x ARR growth."
+
+slide metrics
+  heading "The quarter"
+  metric "ARR" "$4.4M" "+42%"
+  metric "Net revenue retention" "131%" "+9pt"
+  metric "Burn multiple" "0.8x" "-0.3x"
+
+slide chart.area
+  heading "ARR by quarter ($M)"
+  bind arr
+
+slide bullets
+  heading "What changed"
+  point "Reliability layer shipped; enterprise pilots unblocked"
+  point "Two Fortune 500 design partners signed"
+  point "Inference cost down 38 percent per request"
+
+slide math
+  heading "Efficiency"
+  formula "burn multiple = \frac{net burn}{net new ARR}"

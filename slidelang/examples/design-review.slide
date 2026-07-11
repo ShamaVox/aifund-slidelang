@@ -1,0 +1,32 @@
+deck "Reliability Pipeline — Design Review"
+theme forest
+
+slide title
+  heading "Reliability Pipeline — Design Review"
+  subtitle "How generated output becomes trustworthy"
+
+slide bullets
+  heading "Problem"
+  point "Model output looks right and is wrong"
+  point "A wrong number in front of investors is unrecoverable"
+  point "Bigger models raise the floor, not the guarantee"
+
+slide chart.bar
+  heading "Latency budget (ms)"
+  data Plan 800, Compile 40, Lint 6, Render 120
+
+slide table
+  heading "Pipeline stages"
+  cols "Stage" "Deterministic" "Cost"
+  row "Ground" "yes" "low"
+  row "Author" "no" "high"
+  row "Verify" "yes" "low"
+  row "Repair" "yes" "low"
+
+slide math
+  heading "Confidence"
+  formula "score = \prod checks_i"
+
+slide quote
+  quote "The model is the easy part. The trust layer is the product."
+  cite "Design review"

@@ -1,0 +1,11 @@
+# One-click deploy on Render (separate-service option; stateful KPI store).
+services:
+  - type: web
+    name: slidelang-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    envVars:
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: SLIDELANG_MODEL
+        value: claude-sonnet-4-6
