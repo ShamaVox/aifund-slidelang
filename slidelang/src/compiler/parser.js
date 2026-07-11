@@ -68,7 +68,7 @@ export function parse(src) {
         cur = {
           _kind: "slide", type, id, line, heading: null, subtitle: null,
           points: [], metrics: [], data: [], rows: [], cols: [],
-          formula: null, image: null, quote: null, cite: null, notes: null, bind: null,
+          formula: null, image: null, quote: null, cite: null, notes: null, bind: null, imageRef: null,
         };
         ast.slides.push(cur);
         return;
@@ -91,6 +91,7 @@ export function parse(src) {
       case "point": cur.points.push(val); break;
       case "formula": cur.formula = val; break;
       case "image": cur.image = val; break;
+      case "imageref": cur.imageRef = rest.trim(); break;
       case "quote": cur.quote = val; break;
       case "cite": cur.cite = val; break;
       case "notes": cur.notes = (cur.notes ? cur.notes + " " : "") + val; break;

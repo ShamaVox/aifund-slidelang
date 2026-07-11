@@ -164,3 +164,14 @@ See `PRD.md` and `TDD.md` for the product and technical design.
 
 Endpoints: `POST /api/author`, `POST /api/compile`, `POST /api/publish`, `GET /d/:id`,
 `POST /api/kpi/event`, `GET /api/kpi/metrics`, `GET /api/eval`, `GET /api/health`.
+
+## Images (generation + verifier + no-clobber assets)
+
+Image slides generate a visual via `POST /api/image` (`backend/app/image/`): a
+pluggable **provider** (default: deterministic SVG so demos never flake; a real
+image model implements the same interface) gated by a **verifier** that blocks
+brand/logo lookalikes and unsafe prompts. The generated asset has a stable id per
+prompt and is tracked on the slide as `imageRef`, so it joins the no-clobber merge:
+a **pinned** image is kept on regenerate, an **unchanged** prompt reuses the cached
+asset, and only a **changed** prompt on an unpinned slide regenerates. Generate/pin
+an image in the inspector.

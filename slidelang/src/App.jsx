@@ -56,7 +56,12 @@ slide bullets
 
 slide math
   heading "The efficiency story"
-  formula "burn multiple = \\frac{net burn}{net new ARR}"`;
+  formula "burn multiple = \\frac{net burn}{net new ARR}"
+
+slide image
+  heading "Where we're headed"
+  image "a calm editorial illustration of a rising line over a city skyline, muted palette"
+  notes "Generate the visual, then pin it so a data refresh doesn't redraw it."`;
 
 const STAGES = [
   { id: "plan", label: "Plan", icon: Bot }, { id: "spec", label: "Spec", icon: Braces },
@@ -93,6 +98,8 @@ export default function App() {
   const [deckId, setDeckId] = useState(null);
   const genTime = useRef(0);
   const [metrics, setMetrics] = useState(null);
+  const [imageAssets, setImageAssets] = useState({}); // assetId -> data_url (session cache)
+  const [imgBusy, setImgBusy] = useState(false);
 
   const built = useMemo(() => build(src, { plugins: DEFAULT_PLUGINS }), [src]);
   const { slides, diagnostics, repairs, ast, errors, warnings } = built;
@@ -179,6 +186,26 @@ export default function App() {
     flash("Merged — your edits preserved");
   };
   const editTheme = (t) => { const a = JSON.parse(JSON.stringify(ast)); a.theme = t; setSrc(serialize(a)); };
+
+  // Generate (or reuse) the image asset for an image slide. Deterministic: the
+  // backend returns a stable id per prompt, so a pinned/unchanged image is reused.
+  const generateImage = async (slideIndex, force = false) => {
+    const s = ast.slides[slideIndex];
+    if (!s || s.type !== "image" || !s.image) return;
+    if (imgBusy) return;
+    setImgBusy(true);
+    try {
+      const res = await fetch("/api/image", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: s.image }) });
+      if (!res.ok) { const e = await res.json().catch(() => ({})); flash(e.flags ? `Image blocked: ${e.flags[0]}` : "Image blocked by verifier"); setImgBusy(false); return; }
+      const { id, data_url } = await res.json();
+      setImageAssets((m) => ({ ...m, [id]: data_url }));
+      const a = JSON.parse(JSON.stringify(ast));
+      a.slides[slideIndex].imageRef = id;
+      setSrc(serialize(a));
+      flash("Image generated");
+    } catch { flash("Start the API to generate images (npm run api)"); }
+    setImgBusy(false);
+  };
   const applyRepairs = () => { const b = build(src); if (b.repairs.length) { setSrc(serialize(b.ast)); flash("Applied repairs"); } };
 
   const downloadHTML = () => {
@@ -302,11 +329,11 @@ export default function App() {
             ))}</div>
           </div>
           <div className="canvaswrap">
-            <div className="canvas">{cur ? <SlideView s={cur} theme={ast.theme} scale={0.62} /> : <div className="empty">No slides</div>}</div>
+            <div className="canvas">{cur ? <SlideView s={cur} theme={ast.theme} scale={0.62} assets={imageAssets} /> : <div className="empty">No slides</div>}</div>
             <div className="thumbs">
               {slides.map((s, i) => (
                 <button key={i} onClick={() => setSel(i)} className={"thumb" + (i === sel ? " on" : "")}>
-                  <SlideView s={s} theme={ast.theme} scale={0.12} />
+                  <SlideView s={s} theme={ast.theme} scale={0.12} assets={imageAssets} />
                   <span>{i + 1}</span>
                 </button>
               ))}
@@ -324,6 +351,11 @@ export default function App() {
               </div>
               <input value={cur.heading || ""} onChange={(e) => editField({ heading: e.target.value })} placeholder="heading" />
               <textarea rows={2} value={cur.notes || ""} onChange={(e) => editField({ notes: e.target.value })} placeholder="speaker notes…" />
+              {cur.type === "image" && (
+                <button className="btn" style={{ justifyContent: "center" }} disabled={imgBusy} onClick={() => generateImage(cur._index)}>
+                  {imgBusy ? <RefreshCw size={14} className="spin" /> : <Sparkles size={14} />} {cur.imageRef && imageAssets[cur.imageRef] ? "Regenerate image" : "Generate image"}
+                </button>
+              )}
               <small>Edits are keyed to the slide id and survive regeneration — round-trip, no clobber.</small>
             </div>
           )}
@@ -437,7 +469,7 @@ export default function App() {
 
       {present && cur && (
         <div className="present">
-          <div className="stage-present"><div className="bigcanvas"><SlideView s={cur} theme={ast.theme} scale={1} /></div></div>
+          <div className="stage-present"><div className="bigcanvas"><SlideView s={cur} theme={ast.theme} scale={1} assets={imageAssets} /></div></div>
           {cur.notes && <div className="notes">{cur.notes}</div>}
           <div className="controls">
             <button className="btn" onClick={() => setSel((i) => Math.max(0, i - 1))}><ChevronLeft size={15} /></button>

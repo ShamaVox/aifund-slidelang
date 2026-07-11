@@ -4,7 +4,7 @@ import { CANVAS } from "../compiler/layout.js";
 import Formula from "./Formula.jsx";
 import Chart from "./Chart.jsx";
 
-export default function SlideView({ s, theme, scale = 1 }) {
+export default function SlideView({ s, theme, scale = 1, assets = {} }) {
   const th = THEMES[theme] || THEMES.midnight;
   const pad = { padding: `${CANVAS.padY * scale}px ${CANVAS.padX * scale}px` };
   const rule = <div style={{ width: 40 * scale, height: 3 * scale, background: th.accent, margin: `${14 * scale}px 0 ${22 * scale}px`, borderRadius: 2 }} />;
@@ -82,9 +82,13 @@ export default function SlideView({ s, theme, scale = 1 }) {
             )}
 
             {s.type === "image" && (
-              <div style={{ height: 280 * scale, borderRadius: 14 * scale, background: `linear-gradient(135deg, ${th.accent}22, ${th.rule})`, border: `1px solid ${th.rule}`, display: "flex", alignItems: "flex-end", padding: 20 * scale }}>
-                <div style={{ fontSize: 15 * scale, color: th.muted, fontFamily: "ui-monospace" }}>image · {s.image}</div>
-              </div>
+              (s.imageRef && assets[s.imageRef]) ? (
+                <img src={assets[s.imageRef]} alt={s.image || "image"} style={{ width: "100%", height: 280 * scale, objectFit: "cover", borderRadius: 14 * scale, border: `1px solid ${th.rule}`, display: "block" }} />
+              ) : (
+                <div style={{ height: 280 * scale, borderRadius: 14 * scale, background: `linear-gradient(135deg, ${th.accent}22, ${th.rule})`, border: `1px solid ${th.rule}`, display: "flex", alignItems: "flex-end", padding: 20 * scale }}>
+                  <div style={{ fontSize: 15 * scale, color: th.muted, fontFamily: "ui-monospace" }}>image · {s.image}{s.imageRef ? " · (generate to render)" : ""}</div>
+                </div>
+              )
             )}
           </div>
         </>

@@ -52,7 +52,7 @@ Covered in 2. Key property for this user: **number integrity.** Binding removes 
 
 - **Charts (data-bound):** bar/line/area/pie via recharts; `bind` or inline `data`. *Why data-bound, not a rendered image:* the moment a chart is a PNG, the number can drift and can't be edited — the exact failure this product exists to prevent.
 - **Math:** a lightweight LaTeX-ish renderer (`\times`, `\frac`, `\prod`, sub/superscripts). *Production:* KaTeX; kept dependency-free in the prototype.
-- **Image:** a prompt-bound primitive with a caption. *Production:* image-gen behind a verifier (on-brand, relevant, license-safe) before it lands on a slide.
+- **Image:** generation is a pluggable provider behind a **verifier** (`backend/app/image/`). The default provider renders a deterministic SVG (stable asset id per prompt) so the demo never depends on a flaky call; a real image model implements the same `generate(prompt)` interface. The verifier gates every asset (blocks brand/logo lookalikes and unsafe prompts) — the image analog of the deck verifier, because generation is easy and *trustworthy* generation is the hard part. **Asset lifecycle in the merge:** an image is a pinnable cached asset keyed to the slide id via `imageRef`. On regenerate: a pinned slide keeps its image; an unchanged prompt reuses the cached asset; only a changed prompt on an unpinned slide regenerates. So a data refresh never silently redraws a visual the team approved — the same no-clobber guarantee, extended from text to binary assets. *(Session-cached in the prototype; a real asset store is the production step.)*
 
 ## 7. Regeneration engine (regenerate without clobbering)
 

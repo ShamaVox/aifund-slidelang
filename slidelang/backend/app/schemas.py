@@ -18,6 +18,10 @@ class PublishRequest(BaseModel):
     spec: str = Field(max_length=100_000)
 
 
+class ImageRequest(BaseModel):
+    prompt: str = Field(min_length=1, max_length=400)
+
+
 class KpiEvent(BaseModel):
     kind: str
     deck_id: str | None = None

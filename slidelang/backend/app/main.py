@@ -22,9 +22,11 @@ from .agent.loop import author
 from .compiler.pipeline import build
 from .config import settings
 from .eval.harness import run_compiler_evals
+from .image.provider import get_provider
+from .image.verifier import verify as verify_image
 from .kpi import store as kpi
 from .logging_conf import configure, log_event, new_request_id
-from .schemas import AuthorRequest, CompileRequest, KpiEvent, PublishRequest
+from .schemas import AuthorRequest, CompileRequest, ImageRequest, KpiEvent, PublishRequest
 
 configure()
 log = logging.getLogger("slidelang.api")
@@ -57,6 +59,20 @@ async def health():
 async def api_author(req: AuthorRequest):
     result = await author(req.prompt, use_model=req.use_model, basis=req.basis)
     return result.to_dict()
+
+
+@app.post("/api/image")
+async def api_image(req: ImageRequest):
+    """Generate a visual for an image slide, gated by the verifier.
+    Deterministic: the same prompt returns the same asset id, so a regenerate can
+    reuse a pinned image instead of making a new one."""
+    verdict = verify_image(req.prompt)
+    if not verdict.ok:
+        return JSONResponse({"ok": False, "score": verdict.score, "flags": verdict.flags}, status_code=422)
+    asset = get_provider().generate(req.prompt)
+    log_event(log, "image_generated", asset_id=asset.id, provider=asset.provider, score=verdict.score)
+    return {"ok": True, "id": asset.id, "data_url": asset.data_url, "provider": asset.provider,
+            "score": verdict.score, "flags": verdict.flags}
 
 
 @app.post("/api/compile")

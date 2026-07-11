@@ -20,6 +20,7 @@ export function serialize(ast) {
     (s.rows || []).forEach((r) => L.push(`  row ${r.map((c) => `"${c}"`).join(" ")}`));
     if (s.formula) L.push(`  formula "${s.formula}"`);
     if (s.image) L.push(`  image "${s.image}"`);
+    if (s.imageRef) L.push(`  imageref ${s.imageRef}`);
     if (s.quote) L.push(`  quote "${s.quote}"`);
     if (s.cite) L.push(`  cite "${s.cite}"`);
     if (s.notes) L.push(`  notes "${s.notes}"`);
