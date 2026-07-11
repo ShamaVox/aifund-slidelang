@@ -323,7 +323,8 @@ export default function App() {
             ))}</div>
           </div>
           <div className="canvaswrap">
-            <div className="canvas">{cur ? <SlideView s={cur} theme={ast.theme} scale={0.62} assets={imageAssets} /> : (
+            {cur && <div className="edit-hint">✎ edit in the panel below</div>}
+            <div className="canvas">{cur ? <SlideView s={cur} theme={ast.theme} scale={0.62} assets={imageAssets} deckTitle={ast.title} total={slides.length} /> : (
               <div className="welcome">
                 <div className="wtitle">Start a deck</div>
                 <div className="wsub">Type a prompt above and click <b>Agent authors</b> — or write a spec on the left. Both are live.</div>
@@ -341,15 +342,17 @@ export default function App() {
           {cur && (
             <div className="inspector">
               <div className="lbl">
-                INSPECTOR · slide {sel + 1} · {cur.type}
+                ✎ Edit slide {sel + 1} · {cur.type}
                 <div className="spacer" />
                 {cur.id && overrides[cur.id] && !overrides[cur.id]._pinned && Object.keys(overrides[cur.id]).length > 0 && <span className="edited">edited</span>}
                 <button className={"pin" + (overrides[cur?.id]?._pinned ? " on" : "")} onClick={togglePin} title="Protect this slide on regenerate">
                   {overrides[cur?.id]?._pinned ? "📌 pinned" : "pin"}
                 </button>
               </div>
-              <input value={cur.heading || ""} onChange={(e) => editField({ heading: e.target.value })} placeholder="heading" />
-              <textarea rows={2} value={cur.notes || ""} onChange={(e) => editField({ notes: e.target.value })} placeholder="speaker notes…" />
+              <div className="field-label">Heading</div>
+              <input value={cur.heading || ""} onChange={(e) => editField({ heading: e.target.value })} placeholder="Slide heading" />
+              <div className="field-label">Speaker notes</div>
+              <textarea rows={2} value={cur.notes || ""} onChange={(e) => editField({ notes: e.target.value })} placeholder="Notes shown in Present mode…" />
               {cur.type === "image" && (
                 <button className="btn" style={{ justifyContent: "center" }} disabled={imgBusy} onClick={() => generateImage(cur._index)}>
                   {imgBusy ? <RefreshCw size={14} className="spin" /> : <Sparkles size={14} />} {cur.imageRef && imageAssets[cur.imageRef] ? "Regenerate image" : "Generate image"}
@@ -470,7 +473,7 @@ export default function App() {
 
       {present && cur && (
         <div className="present">
-          <div className="stage-present"><div className="bigcanvas"><SlideView s={cur} theme={ast.theme} scale={1} assets={imageAssets} /></div></div>
+          <div className="stage-present"><div className="bigcanvas"><SlideView s={cur} theme={ast.theme} scale={1} assets={imageAssets} deckTitle={ast.title} total={slides.length} /></div></div>
           {cur.notes && <div className="notes">{cur.notes}</div>}
           <div className="controls">
             <button className="btn" onClick={() => setSel((i) => Math.max(0, i - 1))}><ChevronLeft size={15} /></button>
