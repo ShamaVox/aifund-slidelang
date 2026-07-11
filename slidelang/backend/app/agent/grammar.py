@@ -9,6 +9,8 @@ dataset <name>
 slide title
   heading "<text>"
   subtitle "<text>"
+slide section
+  heading "<text>"
 slide bullets
   heading "<text>"
   point "<text>"                 (2-6 points)
@@ -25,9 +27,12 @@ slide table
 slide math
   heading "<text>"
   formula "LTV = ARPU \\\\times \\\\frac{1}{churn}"
+slide image
+  heading "<text>"
+  image "<a vivid, literal description of the picture to generate>"
 slide quote
   quote "<text>"
   cite "<who>"
 
 Any slide may add:  notes "<speaker notes>"
-Rules: indent 2 spaces. Headings < 58 chars. 6-8 slides. Numeric chart values only."""
+Rules: indent 2 spaces. Headings < 58 chars. 7-10 slides. Numeric chart values only."""
