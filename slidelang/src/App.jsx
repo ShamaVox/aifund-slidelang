@@ -77,6 +77,10 @@ export default function App() {
   const [metrics, setMetrics] = useState(null);
   const [imageAssets, setImageAssets] = useState({}); // assetId -> data_url (session cache)
   const [imgBusy, setImgBusy] = useState(false);
+  // presentation-only UI state (no effect on the compiler/merge logic)
+  const [showEditor, setShowEditor] = useState(false); // user chose "write a spec myself" from the empty state
+  const [pipeExpanded, setPipeExpanded] = useState(false); // full 7-stage pipeline vs. collapsed status pill
+  const [exportOpen, setExportOpen] = useState(false); // export dropdown menu
 
   const built = useMemo(() => build(src, { plugins: DEFAULT_PLUGINS }), [src]);
   const isEmpty = !src.trim();
@@ -231,6 +235,70 @@ export default function App() {
 
   const lineCount = src.split("\n").length;
 
+  // Progressive disclosure: the empty state shows only the prompt.
+  // The full workspace (pipeline, panes, tabs, export) appears once there's a deck,
+  // the user opts into hand-writing a spec, or a generation is in flight.
+  const authoring = !isEmpty || !!baseAst || showEditor || running;
+  const hasDeck = slides.length > 0;
+  const showStages = pipeExpanded || running; // auto-expand the pipeline while the agent works
+  const pillTone = running ? "run" : errors.length ? "warn" : "ok";
+  const pillLabel = running
+    ? "Agent working…"
+    : errors.length
+      ? `${errors.length} error${errors.length > 1 ? "s" : ""}${repairs.length ? ` · ${repairs.length} auto-repaired` : ""}`
+      : `Ready · ${slides.length} slide${slides.length === 1 ? "" : "s"}`;
+  const EXAMPLES = [
+    "Seed pitch for an AI-native retail platform",
+    "Series A deck for a developer tools startup",
+    "Technical architecture review for a data pipeline",
+  ];
+
+  // ---- Empty state: one prompt, one action. Everything else stays hidden. ----
+  if (!authoring) {
+    return (
+      <div className="app">
+        <header>
+          <div className="brand">
+            <div className="logo"><Braces size={15} color="#0C0F14" /></div>
+            <b>SlideLang</b><span className="tag">deck-as-code</span>
+          </div>
+          <div className="spacer" />
+        </header>
+        <div className="hero">
+          <div className="hero-inner">
+            <h1>Describe the deck. Get a correct one.</h1>
+            <p>The agent writes the spec. The compiler makes it valid, repairs what it can, and never silently overwrites your edits.</p>
+            <div className="hero-input">
+              <div className="inputwrap">
+                <Sparkles size={16} color={C.amber} className="ic" />
+                <input
+                  autoFocus
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter" && prompt.trim()) generate(true); }}
+                  placeholder="Describe the deck you want…"
+                />
+              </div>
+              <button className="btn primary" disabled={running || !prompt.trim()} onClick={() => generate(true)}>
+                {running ? <RefreshCw size={14} className="spin" /> : <Bot size={14} />} Generate deck
+              </button>
+            </div>
+            <div className="chips-row">
+              {EXAMPLES.map((ex) => (
+                <button key={ex} className="chip-ex" onClick={() => { setPrompt(ex); generate(true); }}>{ex}</button>
+              ))}
+            </div>
+            <div className="hero-alt">
+              <button className="link-btn" onClick={() => generate(false)}><Zap size={13} /> Try the simulated agent (no API key)</button>
+              <span className="dot">·</span>
+              <button className="link-btn" onClick={() => setShowEditor(true)}><FileCode2 size={13} /> Write a spec yourself</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="app">
       <header>
@@ -239,11 +307,24 @@ export default function App() {
           <b>SlideLang</b><span className="tag">deck-as-code</span>
         </div>
         <div className="spacer" />
-        <button className="btn" onClick={() => setPresent(true)}><Play size={14} /> Present</button>
-        <button className="btn" onClick={publish}><Sparkles size={14} /> Publish</button>
-        <button className="btn" onClick={downloadHTML}><Download size={14} /> Export HTML</button>
-        <button className="btn" onClick={() => { window.print(); }}><Download size={14} /> PDF</button>
-        <button className="btn" onClick={() => { navigator.clipboard?.writeText(src); flash("Spec copied"); }}><Copy size={14} /> Copy spec</button>
+        {hasDeck && (
+          <>
+            <button className="btn primary" onClick={() => setPresent(true)}><Play size={14} /> Present</button>
+            <button className="btn" onClick={publish}><Sparkles size={14} /> Publish</button>
+            <div className="exportmenu">
+              <button className="btn" onClick={() => setExportOpen((v) => !v)}>
+                <Download size={14} /> Export <ChevronRight size={12} style={{ transform: exportOpen ? "rotate(90deg)" : "rotate(90deg)" }} />
+              </button>
+              {exportOpen && (
+                <div className="menu" onMouseLeave={() => setExportOpen(false)}>
+                  <button onClick={() => { downloadHTML(); setExportOpen(false); }}><Download size={13} /> Export HTML</button>
+                  <button onClick={() => { window.print(); setExportOpen(false); }}><Download size={13} /> Print / PDF</button>
+                  <button onClick={() => { navigator.clipboard?.writeText(src); flash("Spec copied"); setExportOpen(false); }}><Copy size={13} /> Copy spec</button>
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </header>
 
       <div className="promptbar">
@@ -258,7 +339,12 @@ export default function App() {
           <button className="btn" disabled={running} onClick={() => generate(false)}><Zap size={14} /> Simulated agent</button>
         </div>
         <div className="pipeline">
-          {STAGES.map((st, i) => {
+          <button className={"statuspill " + pillTone} onClick={() => setPipeExpanded((v) => !v)} title="Show the compile pipeline">
+            {running ? <RefreshCw size={12} className="spin" /> : <span className="dotmark" />}
+            {pillLabel}
+            <ChevronRight size={12} style={{ transform: showStages ? "rotate(90deg)" : "none", opacity: 0.6 }} />
+          </button>
+          {showStages && STAGES.map((st, i) => {
             const on = active[st.id]; const Ic = st.icon;
             return (
               <React.Fragment key={st.id}>
@@ -268,12 +354,14 @@ export default function App() {
             );
           })}
           <div className="spacer" />
-          <div className="counts">
-            <span style={{ color: errors.length ? C.coral : C.teal }}>{errors.length} err</span>
-            <span style={{ color: warnings.length ? C.amber : C.dim }}>{warnings.length} warn</span>
-            <span style={{ color: C.violet }}>{repairs.length} repaired</span>
-            <span style={{ color: C.dim }}>{slides.length} slides</span>
-          </div>
+          {showStages && (
+            <div className="counts">
+              <span style={{ color: errors.length ? C.coral : C.teal }}>{errors.length} err</span>
+              <span style={{ color: warnings.length ? C.amber : C.dim }}>{warnings.length} warn</span>
+              <span style={{ color: C.violet }}>{repairs.length} repaired</span>
+              <span style={{ color: C.dim }}>{slides.length} slides</span>
+            </div>
+          )}
         </div>
 
         {baseAst && (

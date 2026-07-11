@@ -843,3 +843,196 @@ header {
   max-width: 340px;
   line-height: 1.5
 }
+
+/* ---- Empty-state hero (progressive disclosure) ---- */
+.hero {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.hero-inner {
+  width: 100%;
+  max-width: 620px;
+  text-align: center;
+}
+
+.hero-inner h1 {
+  font-size: 30px;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  margin: 0 0 12px;
+  color: var(--text);
+}
+
+.hero-inner p {
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--dim);
+  margin: 0 auto 26px;
+  max-width: 520px;
+}
+
+.hero-input {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.hero-input .inputwrap input {
+  padding: 12px 12px 12px 38px;
+  font-size: 15px;
+}
+
+.hero-input .inputwrap .ic {
+  top: 14px;
+}
+
+.hero-input .btn.primary {
+  padding: 12px 18px;
+}
+
+.chips-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 16px;
+}
+
+.chip-ex {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  color: var(--dim);
+  border-radius: 999px;
+  padding: 6px 13px;
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: all .15s;
+}
+
+.chip-ex:hover {
+  border-color: var(--amber);
+  color: var(--text);
+}
+
+.hero-alt {
+  margin-top: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: var(--faint);
+}
+
+.hero-alt .dot {
+  color: var(--faint);
+}
+
+.link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: var(--dim);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.link-btn:hover {
+  color: var(--amber);
+}
+
+/* ---- Collapsed pipeline status pill ---- */
+.statuspill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid var(--line);
+  background: var(--panel2);
+  color: var(--text);
+  flex-shrink: 0;
+  transition: all .15s;
+}
+
+.statuspill .dotmark {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.statuspill.ok {
+  border-color: rgba(63, 184, 175, .4);
+  color: var(--teal);
+}
+
+.statuspill.ok .dotmark {
+  background: var(--teal);
+}
+
+.statuspill.warn {
+  border-color: rgba(232, 164, 76, .45);
+  color: var(--amber);
+}
+
+.statuspill.warn .dotmark {
+  background: var(--amber);
+}
+
+.statuspill.run {
+  border-color: rgba(139, 123, 232, .45);
+  color: var(--violet);
+}
+
+.statuspill:hover {
+  border-color: var(--faint);
+}
+
+/* ---- Export dropdown ---- */
+.exportmenu {
+  position: relative;
+}
+
+.exportmenu .menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  background: var(--panel2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 5px;
+  display: flex;
+  flex-direction: column;
+  min-width: 168px;
+  z-index: 50;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, .4);
+}
+
+.exportmenu .menu button {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  background: none;
+  border: none;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 500;
+  text-align: left;
+  padding: 8px 10px;
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+.exportmenu .menu button:hover {
+  background: var(--panel);
+}
