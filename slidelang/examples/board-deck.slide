@@ -1,4 +1,4 @@
-deck "Acme AI — Board Deck"
+deck "Example Co — Board Deck"
 theme paper
 
 dataset pipeline
@@ -7,7 +7,7 @@ dataset pipeline
   row Pipeline 9.4
 
 slide title
-  heading "Acme AI — Board Deck"
+  heading "Example Co — Board Deck"
   subtitle "Q4 2026"
 
 slide metrics

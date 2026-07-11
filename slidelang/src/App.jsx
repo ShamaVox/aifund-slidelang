@@ -22,46 +22,23 @@ const C = {
   amber: "#E8A44C", teal: "#3FB8AF", coral: "#E5637A", violet: "#8B7BE8",
 };
 
-const SAMPLE = `deck "Acme AI — Investor Update"
+// Greyed placeholder text shown in the empty editor — never loaded as content.
+const SPEC_PLACEHOLDER = `deck "Your title"
 theme midnight
 
-// change these numbers once; every bound slide updates
-dataset arr
+dataset numbers
   row Q1 1.2
   row Q2 2.0
-  row Q3 3.1
-  row Q4 4.4
 
 slide title
-  heading "Acme AI — Investor Update"
-  subtitle "Q4 2026 · Seed to Series A"
-  notes "Open with the one number that matters: 3.7x ARR growth this year."
-
-slide metrics
-  heading "The quarter"
-  metric "ARR" "$4.4M" "+42%"
-  metric "Net revenue retention" "131%" "+9pt"
-  metric "Burn multiple" "0.8x" "-0.3x"
+  heading "Your title"
+  subtitle "Subtitle"
 
 slide chart.area
-  heading "ARR by quarter ($M)"
-  bind arr
-  notes "Bound to the arr dataset — update the dataset, this redraws."
+  heading "Revenue"
+  bind numbers
 
-slide bullets
-  heading "What changed this quarter"
-  point "Shipped the reliability layer; enterprise pilots unblocked"
-  point "Two Fortune 500 design partners signed"
-  point "Inference cost down 38 percent per request"
-
-slide math
-  heading "The efficiency story"
-  formula "burn multiple = \\frac{net burn}{net new ARR}"
-
-slide image
-  heading "Where we're headed"
-  image "a calm editorial illustration of a rising line over a city skyline, muted palette"
-  notes "Generate the visual, then pin it so a data refresh doesn't redraw it."`;
+# ...or just type a prompt above and click "Agent authors".`;
 
 const STAGES = [
   { id: "plan", label: "Plan", icon: Bot }, { id: "spec", label: "Spec", icon: Braces },
@@ -81,7 +58,7 @@ function short(v) {
 }
 
 export default function App() {
-  const [src, setSrc] = useState(SAMPLE);
+  const [src, setSrc] = useState("");
   const [prompt, setPrompt] = useState("Seed pitch for an AI-native retail platform");
   const [sel, setSel] = useState(0);
   const [present, setPresent] = useState(false);
@@ -102,6 +79,7 @@ export default function App() {
   const [imgBusy, setImgBusy] = useState(false);
 
   const built = useMemo(() => build(src, { plugins: DEFAULT_PLUGINS }), [src]);
+  const isEmpty = !src.trim();
   const { slides, diagnostics, repairs, ast, errors, warnings } = built;
   const review = useMemo(() => reviewDeck(built), [built]);
   const cur = slides[Math.min(sel, Math.max(0, slides.length - 1))];
@@ -317,7 +295,7 @@ export default function App() {
           <div className="head"><FileCode2 size={14} /><span>deck.slide</span><div className="spacer" /><small>{lineCount} lines</small></div>
           <div className="code">
             <div className="gutter">{Array.from({ length: lineCount }).map((_, i) => <div key={i}>{i + 1}</div>)}</div>
-            <textarea value={src} onChange={(e) => setSrc(e.target.value)} spellCheck={false} />
+            <textarea value={src} onChange={(e) => setSrc(e.target.value)} spellCheck={false} placeholder={SPEC_PLACEHOLDER} />
           </div>
         </section>
 
@@ -329,7 +307,12 @@ export default function App() {
             ))}</div>
           </div>
           <div className="canvaswrap">
-            <div className="canvas">{cur ? <SlideView s={cur} theme={ast.theme} scale={0.62} assets={imageAssets} /> : <div className="empty">No slides</div>}</div>
+            <div className="canvas">{cur ? <SlideView s={cur} theme={ast.theme} scale={0.62} assets={imageAssets} /> : (
+              <div className="welcome">
+                <div className="wtitle">Start a deck</div>
+                <div className="wsub">Type a prompt above and click <b>Agent authors</b> — or write a spec on the left. Both are live.</div>
+              </div>
+            )}</div>
             <div className="thumbs">
               {slides.map((s, i) => (
                 <button key={i} onClick={() => setSel(i)} className={"thumb" + (i === sel ? " on" : "")}>
@@ -369,13 +352,17 @@ export default function App() {
             ))}
           </div>
           <div className="panelbody">
-            {tab === "diagnostics" && (diagnostics.length === 0
-              ? <div className="clean"><CheckCircle2 size={15} /> Spec compiles clean. No diagnostics.</div>
-              : diagnostics.map((d, i) => { const M = sevMeta[d.sev]; const Ic = M.icon; return (
-                  <div key={i} className="diag" onClick={() => d.fix && applyRepairs()} style={{ cursor: d.fix ? "pointer" : "default" }}>
-                    <Ic size={14} color={M.color} />
-                    <div><div><span style={{ color: M.color }}>{d.code}</span> · line {d.line} {d.fix && <span style={{ color: C.violet }}>· fixable</span>}</div><div className="msg">{d.msg}</div></div>
-                  </div>); })
+            {tab === "diagnostics" && (isEmpty
+              ? <div className="faint">No deck yet. Type a prompt above, or start writing a spec on the left.</div>
+              : diagnostics.length === 0
+                ? <div className="clean"><CheckCircle2 size={15} /> Spec compiles clean. No diagnostics.</div>
+                : diagnostics.map((d, i) => {
+                  const M = sevMeta[d.sev]; const Ic = M.icon; return (
+                    <div key={i} className="diag" onClick={() => d.fix && applyRepairs()} style={{ cursor: d.fix ? "pointer" : "default" }}>
+                      <Ic size={14} color={M.color} />
+                      <div><div><span style={{ color: M.color }}>{d.code}</span> · line {d.line} {d.fix && <span style={{ color: C.violet }}>· fixable</span>}</div><div className="msg">{d.msg}</div></div>
+                    </div>);
+                })
             )}
             {tab === "review" && (
               <div>

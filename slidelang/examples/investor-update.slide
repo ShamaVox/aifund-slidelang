@@ -1,4 +1,4 @@
-deck "Acme AI — Investor Update"
+deck "Example Co — Investor Update"
 theme midnight
 
 dataset arr
@@ -8,7 +8,7 @@ dataset arr
   row Q4 4.4
 
 slide title
-  heading "Acme AI — Investor Update"
+  heading "Example Co — Investor Update"
   subtitle "Q4 2026 · Seed to Series A"
   notes "Lead with 3.7x ARR growth."
 
