@@ -86,6 +86,7 @@ export default function App() {
   const [pipeOpen, setPipeOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [showRegen, setShowRegen] = useState(false);
+  const [editMode, setEditMode] = useState(false); // review by default; opt-in to edit
 
   const built = useMemo(() => build(src, { plugins: DEFAULT_PLUGINS }), [src]);
   const isEmpty = !src.trim();
@@ -107,6 +108,7 @@ export default function App() {
     setSel(0);
     setLog([]);
     setActive({});
+    setEditMode(false);
   };
 
   const generate = async (useModel) => {
@@ -360,19 +362,20 @@ export default function App() {
 
         {/* preview */}
         <section className="col preview">
-          <div className="head"><Eye size={14} /><span>Slide</span><div className="spacer" />
+          <div className="head"><Eye size={14} /><span>{editMode ? "Editing" : "Slide"}</span><div className="spacer" />
             <div className="themes">{Object.keys(THEMES).map((k) => (
               <button key={k} title={k} onClick={() => editTheme(k)} className={"sw" + (ast.theme === k ? " on" : "")} style={{ background: THEMES[k].bg }} />
             ))}</div>
+            {cur && <button className={"toggle editbtn" + (editMode ? " on" : "")} onClick={() => setEditMode((v) => !v)}>{editMode ? "✓ Done" : "✎ Edit"}</button>}
             <button className={"toggle" + (showCode ? " on" : "")} onClick={() => setShowCode((v) => !v)} title="Show the deck source code"><FileCode2 size={13} /> Code</button>
             <button className={"toggle" + (showDetails ? " on" : "")} onClick={() => setShowDetails((v) => !v)} title="Diagnostics, agent log, KPIs"><Activity size={13} /> Details</button>
           </div>
           <div className="canvaswrap">
-            {cur && <div className="edit-hint">✎ click any text on the slide to edit</div>}
-            <div className="canvas">{cur ? <SlideView s={cur} theme={ast.theme} scale={0.62} assets={imageAssets} deckTitle={ast.title} total={slides.length} editable onEdit={editField} /> : (
+            {cur && editMode && <div className="edit-hint">✎ click any text on the slide to edit</div>}
+            <div className="canvas">{cur ? <SlideView s={cur} theme={ast.theme} scale={0.62} assets={imageAssets} deckTitle={ast.title} total={slides.length} editable={editMode} onEdit={editField} /> : (
               <div className="welcome">
                 <div className="wtitle">No deck yet</div>
-                <div className="wsub">Type a prompt above and hit <b>Generate</b>. Then click any text on the slide to edit it.</div>
+                <div className="wsub">Type a prompt above and hit <b>Generate</b>. Review it, then click <b>Edit</b> to change anything.</div>
               </div>
             )}</div>
             <div className="thumbs">
@@ -384,7 +387,7 @@ export default function App() {
               ))}
             </div>
           </div>
-          {cur && (
+          {cur && editMode && (
             <div className="inspector">
               <div className="lbl">
                 ✎ Edit slide {sel + 1} · {cur.type}

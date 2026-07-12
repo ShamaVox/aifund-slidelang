@@ -390,3 +390,6 @@ div:hover > .ce-del{opacity:1}
 
 /* wider, centered canvas when side panels are hidden */
 .preview .canvaswrap{max-width:1100px;margin:0 auto;width:100%}
+
+/* edit-mode toggle emphasis */
+.toggle.editbtn.on{background:var(--amber);border-color:transparent;color:#1A1206;font-weight:600}

@@ -33,7 +33,7 @@ async def call_model(prompt: str, system: str) -> ModelResult:
 
     body = {
         "model": settings.model,
-        "max_tokens": 2000,
+        "max_tokens": 8000,
         "system": system,
         "messages": [{"role": "user", "content": prompt}],
     }
