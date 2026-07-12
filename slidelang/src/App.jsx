@@ -366,15 +366,122 @@ export default function App() {
                   {overrides[cur?.id]?._pinned ? "📌 pinned" : "pin"}
                 </button>
               </div>
-              <div className="field-label">Heading</div>
-              <input value={cur.heading || ""} onChange={(e) => editField({ heading: e.target.value })} placeholder="Slide heading" />
+              {cur.type !== "quote" && cur.type !== "section" && (
+                <>
+                  <div className="field-label">Heading</div>
+                  <input value={cur.heading || ""} onChange={(e) => editField({ heading: e.target.value })} placeholder="Slide heading" />
+                </>
+              )}
+
+              {cur.type === "title" && (
+                <>
+                  <div className="field-label">Subtitle</div>
+                  <input value={cur.subtitle || ""} onChange={(e) => editField({ subtitle: e.target.value })} placeholder="Subtitle" />
+                </>
+              )}
+
+              {cur.type === "section" && (
+                <>
+                  <div className="field-label">Section heading</div>
+                  <input value={cur.heading || ""} onChange={(e) => editField({ heading: e.target.value })} placeholder="Section" />
+                </>
+              )}
+
+              {cur.type === "bullets" && (
+                <>
+                  <div className="field-label">Bullet points</div>
+                  {(cur.points || []).map((p, i) => (
+                    <div key={i} className="editrow">
+                      <input value={p} onChange={(e) => editField({ points: cur.points.map((x, j) => j === i ? e.target.value : x) })} />
+                      <button className="rowdel" onClick={() => editField({ points: cur.points.filter((_, j) => j !== i) })}>×</button>
+                    </div>
+                  ))}
+                  <button className="rowadd" onClick={() => editField({ points: [...(cur.points || []), "New point"] })}>+ add point</button>
+                </>
+              )}
+
+              {cur.type === "metrics" && (
+                <>
+                  <div className="field-label">Metrics · label / value / change</div>
+                  {(cur.metrics || []).map((m, i) => (
+                    <div key={i} className="editrow metricrow">
+                      <input placeholder="label" value={m.label} onChange={(e) => editField({ metrics: cur.metrics.map((x, j) => j === i ? { ...x, label: e.target.value } : x) })} />
+                      <input placeholder="value" value={m.value} onChange={(e) => editField({ metrics: cur.metrics.map((x, j) => j === i ? { ...x, value: e.target.value } : x) })} />
+                      <input placeholder="Δ" value={m.delta} onChange={(e) => editField({ metrics: cur.metrics.map((x, j) => j === i ? { ...x, delta: e.target.value } : x) })} />
+                      <button className="rowdel" onClick={() => editField({ metrics: cur.metrics.filter((_, j) => j !== i) })}>×</button>
+                    </div>
+                  ))}
+                  <button className="rowadd" onClick={() => editField({ metrics: [...(cur.metrics || []), { label: "Metric", value: "0", delta: "" }] })}>+ add metric</button>
+                </>
+              )}
+
+              {cur.type === "quote" && (
+                <>
+                  <div className="field-label">Quote</div>
+                  <textarea rows={3} value={cur.quote || ""} onChange={(e) => editField({ quote: e.target.value })} placeholder="Quote text" />
+                  <div className="field-label">Citation</div>
+                  <input value={cur.cite || ""} onChange={(e) => editField({ cite: e.target.value })} placeholder="who said it" />
+                </>
+              )}
+
+              {cur.type === "math" && (
+                <>
+                  <div className="field-label">Formula (LaTeX)</div>
+                  <input value={cur.formula || ""} onChange={(e) => editField({ formula: e.target.value })} placeholder="LTV = ARPU \\times \\frac{1}{churn}" />
+                </>
+              )}
+
+              {cur.type && cur.type.startsWith("chart.") && (
+                cur.bind
+                  ? <div className="field-label">Bound to dataset "{cur.bind}" — edit rows in the spec (updates everywhere)</div>
+                  : (
+                    <>
+                      <div className="field-label">Data · label / value</div>
+                      {(cur.data || []).map((d, i) => (
+                        <div key={i} className="editrow metricrow">
+                          <input placeholder="label" value={d.name} onChange={(e) => editField({ data: cur.data.map((x, j) => j === i ? { ...x, name: e.target.value } : x) })} />
+                          <input placeholder="value" value={d.value} onChange={(e) => editField({ data: cur.data.map((x, j) => j === i ? { ...x, value: Number(e.target.value) || 0 } : x) })} />
+                          <button className="rowdel" onClick={() => editField({ data: cur.data.filter((_, j) => j !== i) })}>×</button>
+                        </div>
+                      ))}
+                      <button className="rowadd" onClick={() => editField({ data: [...(cur.data || []), { name: "X", value: 0 }] })}>+ add point</button>
+                    </>
+                  )
+              )}
+
+              {cur.type === "table" && (
+                <>
+                  <div className="field-label">Columns</div>
+                  <div className="editrow">
+                    {(cur.cols || []).map((c, i) => (
+                      <input key={i} value={c} onChange={(e) => editField({ cols: cur.cols.map((x, j) => j === i ? e.target.value : x) })} />
+                    ))}
+                  </div>
+                  <div className="field-label">Rows</div>
+                  {(cur.rows || []).map((row, ri) => (
+                    <div key={ri} className="editrow">
+                      {row.map((cell, ci) => (
+                        <input key={ci} value={cell} onChange={(e) => editField({ rows: cur.rows.map((r, rj) => rj === ri ? r.map((c, cj) => cj === ci ? e.target.value : c) : r) })} />
+                      ))}
+                      <button className="rowdel" onClick={() => editField({ rows: cur.rows.filter((_, j) => j !== ri) })}>×</button>
+                    </div>
+                  ))}
+                  <button className="rowadd" onClick={() => editField({ rows: [...(cur.rows || []), (cur.cols || ["", "", ""]).map(() => "")] })}>+ add row</button>
+                </>
+              )}
+
+              {cur.type === "image" && (
+                <>
+                  <div className="field-label">Image prompt</div>
+                  <input value={cur.image || ""} onChange={(e) => editField({ image: e.target.value })} placeholder="describe the image" />
+                  <button className="btn" style={{ justifyContent: "center" }} disabled={imgBusy} onClick={() => generateImage(cur._index)}>
+                    {imgBusy ? <RefreshCw size={14} className="spin" /> : <Sparkles size={14} />} {cur.imageRef && imageAssets[cur.imageRef] ? "Regenerate image" : "Generate image"}
+                  </button>
+                </>
+              )}
+
               <div className="field-label">Speaker notes</div>
               <textarea rows={2} value={cur.notes || ""} onChange={(e) => editField({ notes: e.target.value })} placeholder="Notes shown in Present mode…" />
-              {cur.type === "image" && (
-                <button className="btn" style={{ justifyContent: "center" }} disabled={imgBusy} onClick={() => generateImage(cur._index)}>
-                  {imgBusy ? <RefreshCw size={14} className="spin" /> : <Sparkles size={14} />} {cur.imageRef && imageAssets[cur.imageRef] ? "Regenerate image" : "Generate image"}
-                </button>
-              )}
               <small>Edits are keyed to the slide id and survive regeneration — round-trip, no clobber.</small>
             </div>
           )}
@@ -392,13 +499,11 @@ export default function App() {
               ? <div className="faint">No deck yet. Type a prompt above, or start writing a spec on the left.</div>
               : diagnostics.length === 0
                 ? <div className="clean"><CheckCircle2 size={15} /> Spec compiles clean. No diagnostics.</div>
-                : diagnostics.map((d, i) => {
-                  const M = sevMeta[d.sev]; const Ic = M.icon; return (
-                    <div key={i} className="diag" onClick={() => d.fix && applyRepairs()} style={{ cursor: d.fix ? "pointer" : "default" }}>
-                      <Ic size={14} color={M.color} />
-                      <div><div><span style={{ color: M.color }}>{d.code}</span> · line {d.line} {d.fix && <span style={{ color: C.violet }}>· fixable</span>}</div><div className="msg">{d.msg}</div></div>
-                    </div>);
-                })
+                : diagnostics.map((d, i) => { const M = sevMeta[d.sev]; const Ic = M.icon; return (
+                  <div key={i} className="diag" onClick={() => d.fix && applyRepairs()} style={{ cursor: d.fix ? "pointer" : "default" }}>
+                    <Ic size={14} color={M.color} />
+                    <div><div><span style={{ color: M.color }}>{d.code}</span> · line {d.line} {d.fix && <span style={{ color: C.violet }}>· fixable</span>}</div><div className="msg">{d.msg}</div></div>
+                  </div>); })
             )}
             {tab === "review" && (
               <div>

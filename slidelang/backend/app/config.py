@@ -5,7 +5,7 @@ import os
 
 class Settings:
     anthropic_api_key: str | None = os.getenv("ANTHROPIC_API_KEY")
-    model: str = os.getenv("SLIDELANG_MODEL", "claude-sonnet-4-6")
+    model: str = os.getenv("SLIDELANG_MODEL", "claude-sonnet-5")
     request_timeout_s: float = float(os.getenv("SLIDELANG_TIMEOUT", "30"))
     max_retries: int = int(os.getenv("SLIDELANG_MAX_RETRIES", "2"))
     max_repair_attempts: int = int(os.getenv("SLIDELANG_MAX_REPAIR", "3"))

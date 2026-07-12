@@ -18,7 +18,9 @@ async function callAuthorAPI(prompt) {
   const data = await res.json();
   const dsl = (data.spec || "").replace(/```[a-z]*|```/g, "").trim();
   if (!/^deck\s/m.test(dsl)) throw new Error("model output missing 'deck' header");
-  return dsl;
+  // used_model tells us whether the LLM actually authored this, or the backend
+  // fell back to its deterministic planner. We surface the truth, not a guess.
+  return { dsl, usedModel: !!data.used_model };
 }
 
 // onStep(stageId, payload) lets the UI animate the pipeline + stream a log.
@@ -29,10 +31,17 @@ export async function authorDeck(prompt, { useModel = true, onStep = () => {} } 
   if (useModel) {
     try {
       onStep("spec", { log: "calling model via /api/author …", kind: "muted" });
-      dsl = await callAuthorAPI(prompt);
-      onStep("spec", { log: "model returned a spec", kind: "ok" });
+      const r = await callAuthorAPI(prompt);
+      dsl = r.dsl;
+      if (r.usedModel) {
+        onStep("spec", { log: "live model authored the spec", kind: "ok" });
+      } else {
+        // proxy answered, but the BACKEND fell back to its deterministic planner
+        // (no key, bad model name, or an API error). Tell the truth.
+        onStep("spec", { log: "model unavailable server-side — deterministic planner (check API key / SLIDELANG_MODEL)", kind: "warn" });
+      }
     } catch (e) {
-      onStep("spec", { log: `model unavailable (${e.message}); using built-in planner.`, kind: "warn" });
+      onStep("spec", { log: `proxy unreachable (${e.message}); using built-in planner.`, kind: "warn" });
       dsl = null;
     }
   }
@@ -78,7 +87,7 @@ export async function regenerate(baseAst, prompt, { useModel = true, overrides =
       const data = await res.json();
       dsl = (data.spec || "").replace(/```[a-z]*|```/g, "").trim();
       if (!/^deck\s/m.test(dsl)) throw new Error("bad model output");
-      onStep("spec", { log: "model returned an updated spec", kind: "ok" });
+      onStep("spec", { log: data.used_model ? "live model updated the spec" : "model unavailable server-side — deterministic update", kind: data.used_model ? "ok" : "warn" });
     } catch (e) {
       onStep("spec", { log: `model unavailable (${e.message}); using deterministic update.`, kind: "warn" });
       dsl = null;

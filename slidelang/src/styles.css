@@ -349,3 +349,12 @@ header{
   .hero-go{width:100%;justify-content:center}
   .home-steps{grid-template-columns:1fr}
 }
+
+/* ---- per-type inspector editing rows ---- */
+.editrow{display:flex;gap:6px;align-items:center;margin-bottom:6px}
+.editrow input{flex:1;min-width:0}
+.metricrow input:nth-child(2),.metricrow input:nth-child(3){max-width:88px;flex:0 0 auto}
+.rowdel{background:var(--panel2);border:1px solid var(--line2);color:var(--faint);border-radius:6px;width:28px;height:32px;cursor:pointer;flex-shrink:0;font-size:15px;line-height:1}
+.rowdel:hover{color:var(--coral);border-color:var(--coral)}
+.rowadd{align-self:flex-start;background:none;border:1px dashed var(--line2);color:var(--dim);border-radius:7px;padding:6px 11px;font-size:12px;cursor:pointer;font-family:var(--mono)}
+.rowadd:hover{border-color:var(--amber);color:var(--amber)}
