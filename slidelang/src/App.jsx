@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, useRef } from "react";
 import {
   Play, Terminal, AlertTriangle, CheckCircle2, XCircle, Wrench, Bot, FileCode2,
   Presentation, Copy, ChevronRight, ChevronLeft, Zap, Braces, ScanLine,
-  LayoutTemplate, Sparkles, RefreshCw, Eye, Download, ClipboardCheck, Star, Activity,
+  LayoutTemplate, Sparkles, RefreshCw, Eye, Download, ClipboardCheck, Star, Activity, Mic,
 } from "lucide-react";
 import { build } from "./compiler/compile.js";
 import { serialize } from "./compiler/serialize.js";
@@ -89,6 +89,40 @@ export default function App() {
   const [showRegen, setShowRegen] = useState(false);
   const [editMode, setEditMode] = useState(false); // review by default; opt-in to edit
   const [agentDemo, setAgentDemo] = useState(false); // "agent via API" demo modal
+  const [listening, setListening] = useState(false);
+  const recRef = useRef(null);
+
+  // Voice-to-deck: browser Web Speech API transcribes speech into the prompt, then
+  // auto-generates when you stop talking. No backend, no key, free. Chrome/Edge/Safari.
+  const voiceSupported = typeof window !== "undefined" && (window.SpeechRecognition || window.webkitSpeechRecognition);
+  const toggleVoice = () => {
+    if (listening) { recRef.current?.stop(); return; }
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) { flash("Voice input needs Chrome, Edge, or Safari"); return; }
+    const rec = new SR();
+    rec.lang = "en-US";
+    rec.interimResults = true;
+    rec.continuous = false; // stops on a natural pause, which is our "done talking" signal
+    let finalText = "";
+    rec.onresult = (e) => {
+      let interim = "";
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const t = e.results[i][0].transcript;
+        if (e.results[i].isFinal) finalText += t; else interim += t;
+      }
+      setPrompt((finalText + interim).trim());
+    };
+    rec.onerror = () => { setListening(false); flash("Didn't catch that — try again"); };
+    rec.onend = () => {
+      setListening(false);
+      const said = finalText.trim();
+      if (said && !running) { setPrompt(said); generate(true); } // auto-generate on stop
+    };
+    recRef.current = rec;
+    setListening(true);
+    setPrompt("");
+    rec.start();
+  };
 
   const built = useMemo(() => build(src, { plugins: DEFAULT_PLUGINS }), [src]);
   const isEmpty = !src.trim();
@@ -357,7 +391,12 @@ export default function App() {
         <div className="row">
           <div className="inputwrap">
             <Sparkles size={15} color={C.amber} className="ic" />
-            <input value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="Describe a deck for an agent to author…" onKeyDown={(e) => { if (e.key === "Enter" && !running && prompt.trim()) generate(true); }} />
+            <input value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder={listening ? "Listening… describe your deck" : "Describe a deck, or tap the mic to speak…"} onKeyDown={(e) => { if (e.key === "Enter" && !running && prompt.trim()) generate(true); }} />
+            {voiceSupported && (
+              <button className={"micbtn" + (listening ? " live" : "")} onClick={toggleVoice} disabled={running} title={listening ? "Stop and generate" : "Speak your deck"} aria-label="voice input">
+                <Mic size={15} />
+              </button>
+            )}
           </div>
           <button className="btn primary" disabled={running} onClick={() => generate(true)}>
             {running ? <RefreshCw size={14} className="spin" /> : <Bot size={14} />} Generate
@@ -463,6 +502,10 @@ export default function App() {
                   {cur.type === "metrics" && <button className="rowadd" onClick={() => editField({ metrics: [...(cur.metrics || []), { label: "Metric", value: "0", delta: "" }] })}>+ metric</button>}
                   {cur.type === "table" && <button className="rowadd" onClick={() => editField({ rows: [...(cur.rows || []), (cur.cols || ["", "", ""]).map(() => "")] })}>+ row</button>}
                   {cur.type && cur.type.startsWith("chart.") && !cur.bind && <button className="rowadd" onClick={() => editField({ data: [...(cur.data || []), { name: "X", value: 0 }] })}>+ data point</button>}
+                  {/* section, title, and quote slides have no body; let the user add bullet content */}
+                  {(cur.type === "section" || cur.type === "title" || cur.type === "quote") && (
+                    <button className="rowadd" onClick={() => editField({ type: "bullets", points: cur.points && cur.points.length ? cur.points : ["Add your point here"], subtitle: undefined, quote: undefined, cite: undefined })}>+ add bullets</button>
+                  )}
                 </div>
 
                 {cur.type && cur.type.startsWith("chart.") && !cur.bind && (
