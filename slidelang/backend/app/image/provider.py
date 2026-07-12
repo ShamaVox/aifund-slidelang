@@ -89,12 +89,13 @@ class OpenAIProvider:
         self._fallback = PlaceholderProvider()
 
     def _body_for(self, model: str, styled: str) -> dict:
-        # each model family wants a slightly different request shape
+        # Newer OpenAI image API rejects response_format (always returns b64).
+        # Keep request bodies minimal so all model families accept them.
         if model == "dall-e-2":
-            return {"model": model, "prompt": styled[:900], "n": 1, "size": "1024x1024", "response_format": "b64_json"}
+            return {"model": model, "prompt": styled[:900], "n": 1, "size": "1024x1024"}
         if model == "dall-e-3":
             q = "hd" if self.quality in ("high", "hd") else "standard"
-            return {"model": model, "prompt": styled, "n": 1, "size": "1792x1024", "quality": q, "response_format": "b64_json"}
+            return {"model": model, "prompt": styled, "n": 1, "size": "1792x1024", "quality": q}
         # gpt-image-1
         q = self.quality if self.quality in ("low", "medium", "high") else "medium"
         return {"model": model, "prompt": styled, "n": 1, "size": "1536x1024", "quality": q}
@@ -122,7 +123,18 @@ class OpenAIProvider:
                         last_err = f"{model}: http {resp.status_code}"
                     log.warning("openai image (%s) rejected: %s", model, last_err)
                     continue
-                b64 = resp.json()["data"][0]["b64_json"]
+                item = resp.json()["data"][0]
+                b64 = item.get("b64_json")
+                if not b64:
+                    # some responses return a URL instead of inline b64 — fetch + encode
+                    import base64 as _b64
+                    url = item.get("url")
+                    if url:
+                        img = client.get(url)
+                        b64 = _b64.b64encode(img.content).decode()
+                if not b64:
+                    last_err = f"{model}: no image data in response"
+                    continue
                 log.info("openai image ok via %s", model)
                 return ImageAsset(id=asset_id(prompt), data_url=f"data:image/png;base64,{b64}", provider=f"openai:{model}")
             except Exception as e:  # noqa: BLE001
