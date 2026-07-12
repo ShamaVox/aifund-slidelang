@@ -129,19 +129,28 @@ async def author(prompt: str, use_model: bool = True, basis: str | None = None) 
         spec = simulate_author(prompt)
         trace.append(Step("author", True, "deterministic author"))
 
-    # 3) VERIFY -> 4) REPAIR loop (compiler diagnostics are the feedback signal)
+    # 3) VERIFY -> 4) REPAIR loop (compiler diagnostics are the feedback signal).
+    # Guarded: a model can emit a spec that trips a compiler edge case; that must
+    # NEVER crash the request. On any build failure we fall back to a known-good deck.
     attempts = 0
-    while attempts < settings.max_repair_attempts:
-        b = build(spec)
-        errs = len(b["errors"])
-        trace.append(Step("verify", errs == 0, f'{errs} error(s), {len(b["warnings"])} warning(s)', diagnostics=errs))
-        if b["repairs"]:
-            trace.append(Step("repair", True, f'{len(b["repairs"])} auto-repair(s)'))
-        if errs == 0:
-            break
-        attempts += 1
+    try:
+        while attempts < settings.max_repair_attempts:
+            b = build(spec)
+            errs = len(b["errors"])
+            trace.append(Step("verify", errs == 0, f'{errs} error(s), {len(b["warnings"])} warning(s)', diagnostics=errs))
+            if b["repairs"]:
+                trace.append(Step("repair", True, f'{len(b["repairs"])} auto-repair(s)'))
+            if errs == 0:
+                break
+            attempts += 1
+        final = build(spec)
+    except Exception as e:  # noqa: BLE001 - model spec broke the compiler; recover
+        log_event(log, "author_build_error", error=type(e).__name__)
+        trace.append(Step("author", False, f"compiler error on model spec ({type(e).__name__}); recovered with deterministic deck"))
+        spec = simulate_author(prompt)
+        used_model = False
+        final = build(spec)
 
-    final = build(spec)
     result = AuthorResult(
         spec=spec, used_model=used_model, trace=trace,
         errors=len(final["errors"]), repairs=len(final["repairs"]), attempts=attempts,

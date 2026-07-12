@@ -57,8 +57,19 @@ async def health():
 
 @app.post("/api/author")
 async def api_author(req: AuthorRequest):
-    result = await author(req.prompt, use_model=req.use_model, basis=req.basis)
-    return result.to_dict()
+    # Bulletproof: never return an empty body. If anything throws, recover with a
+    # deterministic, known-compilable deck so the client always gets valid JSON.
+    try:
+        result = await author(req.prompt, use_model=req.use_model, basis=req.basis)
+        return result.to_dict()
+    except Exception as e:  # noqa: BLE001
+        log_event(log, "author_route_error", error=type(e).__name__)
+        from .agent.deterministic import simulate_author
+        spec = simulate_author(req.prompt)
+        return {
+            "spec": spec, "used_model": False, "errors": 0, "repairs": 0, "attempts": 0,
+            "trace": [{"stage": "author", "ok": False, "detail": f"recovered from {type(e).__name__}"}],
+        }
 
 
 @app.post("/api/agent")
