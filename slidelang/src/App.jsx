@@ -89,8 +89,23 @@ export default function App() {
 
   const flash = (m) => { setToast(m); setTimeout(() => setToast(null), 1800); };
 
+  // Wipe every piece of deck-scoped state so a new deck never inherits the old
+  // one's base spec, human edits, cached images, or an open diff. Called on both
+  // entry points (generate + write-a-spec) to guarantee a clean slate.
+  const resetDeckState = () => {
+    setBaseAst(null);
+    setOverrides({});
+    setDeckId(null);
+    setDiffModal(null);
+    setImageAssets({});
+    setSel(0);
+    setLog([]);
+    setActive({});
+  };
+
   const generate = async (useModel) => {
     if (running) return;
+    resetDeckState();
     setRunning(true); setLog([]); setActive({});
     const finalSrc = await authorDeck(prompt, {
       useModel,
@@ -115,7 +130,7 @@ export default function App() {
     return () => { alive = false; };
   }, []);
 
-  const writeSpec = () => { setSrc(""); setView("studio"); setTab("diagnostics"); };
+  const writeSpec = () => { resetDeckState(); setSrc(""); setView("studio"); setTab("diagnostics"); };
 
   const editField = (patch) => {
     const a = JSON.parse(JSON.stringify(ast));
@@ -143,6 +158,7 @@ export default function App() {
     setRunning(true); setLog([]); setActive({}); setTab("agent");
     const newSrc = await regenerate(baseAst, updatePrompt, {
       useModel,
+      overrides,
       onStep: (stage, payload) => {
         if (stage !== "done") setActive((a) => ({ ...a, [stage]: true }));
         if (payload.log) setLog((l) => [...l, { m: payload.log, kind: payload.kind || "info" }]);
@@ -255,6 +271,7 @@ export default function App() {
           <b>SlideLang</b><span className="tag">deck-as-code</span>
         </div>
         <div className="spacer" />
+        <button className="btn" onClick={() => { resetDeckState(); setSrc(""); setView("home"); }}><FileCode2 size={14} /> New deck</button>
         <button className="btn" onClick={() => setPresent(true)}><Play size={14} /> Present</button>
         <button className="btn" onClick={publish}><Sparkles size={14} /> Publish</button>
         <button className="btn" onClick={downloadHTML}><Download size={14} /> Export HTML</button>
@@ -375,11 +392,13 @@ export default function App() {
               ? <div className="faint">No deck yet. Type a prompt above, or start writing a spec on the left.</div>
               : diagnostics.length === 0
                 ? <div className="clean"><CheckCircle2 size={15} /> Spec compiles clean. No diagnostics.</div>
-                : diagnostics.map((d, i) => { const M = sevMeta[d.sev]; const Ic = M.icon; return (
-                  <div key={i} className="diag" onClick={() => d.fix && applyRepairs()} style={{ cursor: d.fix ? "pointer" : "default" }}>
-                    <Ic size={14} color={M.color} />
-                    <div><div><span style={{ color: M.color }}>{d.code}</span> · line {d.line} {d.fix && <span style={{ color: C.violet }}>· fixable</span>}</div><div className="msg">{d.msg}</div></div>
-                  </div>); })
+                : diagnostics.map((d, i) => {
+                  const M = sevMeta[d.sev]; const Ic = M.icon; return (
+                    <div key={i} className="diag" onClick={() => d.fix && applyRepairs()} style={{ cursor: d.fix ? "pointer" : "default" }}>
+                      <Ic size={14} color={M.color} />
+                      <div><div><span style={{ color: M.color }}>{d.code}</span> · line {d.line} {d.fix && <span style={{ color: C.violet }}>· fixable</span>}</div><div className="msg">{d.msg}</div></div>
+                    </div>);
+                })
             )}
             {tab === "review" && (
               <div>
