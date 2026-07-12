@@ -246,7 +246,7 @@ export default function App() {
   // backend returns a stable id per prompt, so a pinned/unchanged image is reused.
   const generateImage = async (slideIndex, force = false) => {
     const s = ast.slides[slideIndex];
-    if (!s || s.type !== "image" || !s.image) return;
+    if (!s || !s.image) return;   // any slide carrying an image prompt can generate
     if (imgBusy) return;
     setImgBusy(true);
     try {
@@ -418,8 +418,8 @@ export default function App() {
             <button className={"toggle" + (showDetails ? " on" : "")} onClick={() => setShowDetails((v) => !v)} title="Diagnostics, agent log, KPIs"><Activity size={13} /> Details</button>
           </div>
           <div className="canvaswrap">
-            {cur && editMode && <div className="edit-hint">✎ click any text on the slide to edit</div>}
-            <div className="canvas">{cur ? <SlideView s={cur} theme={ast.theme} scale={0.62} assets={imageAssets} deckTitle={ast.title} total={slides.length} editable={editMode} onEdit={editField} /> : (
+            {cur && editMode && <div className="edit-hint">✎ editing — click any highlighted text to change it</div>}
+            <div className={"canvas" + (editMode ? " editing" : "")}>{cur ? <SlideView s={cur} theme={ast.theme} scale={0.62} assets={imageAssets} deckTitle={ast.title} total={slides.length} editable={editMode} onEdit={editField} /> : (
               <div className="welcome">
                 <div className="wtitle">No deck yet</div>
                 <div className="wsub">Type a prompt above and hit <b>Generate</b>. Review it, then click <b>Edit</b> to change anything.</div>
@@ -484,6 +484,24 @@ export default function App() {
                   </button>
                   {cur.imageRef && imageAssets[cur.imageRef] && <small>Edit the prompt above, then regenerate — the image updates to match.</small>}
                 </>
+              )}
+
+              {/* Universal image control: add a photo BESIDE any content slide, per-slide */}
+              {cur.type !== "image" && cur.type !== "section" && (
+                cur.image != null ? (
+                  <>
+                    <div className="field-label">Image · shown beside this slide</div>
+                    <input value={cur.image} onChange={(e) => editField({ image: e.target.value })} placeholder="describe the image" />
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <button className="btn primary" style={{ flex: 1, justifyContent: "center" }} disabled={imgBusy} onClick={() => generateImage(cur._index, true)}>
+                        {imgBusy ? <><RefreshCw size={14} className="spin" /> Generating…</> : <><Sparkles size={14} /> {cur.imageRef && imageAssets[cur.imageRef] ? "Regenerate" : "Generate image"}</>}
+                      </button>
+                      <button className="btn" onClick={() => editField({ image: null, imageRef: null })}>Remove</button>
+                    </div>
+                  </>
+                ) : (
+                  <button className="rowadd" onClick={() => editField({ image: "a relevant editorial photograph, natural light" })}>＋ add an image to this slide</button>
+                )
               )}
 
               <div className="field-label">Speaker notes</div>

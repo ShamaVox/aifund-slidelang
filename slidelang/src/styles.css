@@ -1887,3 +1887,23 @@ div:hover>.ce-del {
 .tracestep.goal .tsi {
   color: var(--amber)
 }
+
+/* edit mode: make every editable region visible, not just on hover */
+.canvas.editing .ce {
+  outline: 1px dashed rgba(232, 164, 76, .45);
+  outline-offset: 2px;
+  border-radius: 5px
+}
+
+.canvas.editing .ce:hover {
+  outline: 1.5px dashed rgba(232, 164, 76, .8)
+}
+
+.canvas.editing .ce:focus {
+  outline: 2px solid var(--amber);
+  background: rgba(232, 164, 76, .08)
+}
+
+.canvas.editing .ce-del {
+  opacity: 1
+}
