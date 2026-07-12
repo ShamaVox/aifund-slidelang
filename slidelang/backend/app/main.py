@@ -52,7 +52,15 @@ async def request_context(request: Request, call_next):
 
 @app.get("/api/health")
 async def health():
-    return {"ok": True, "model_enabled": settings.model_enabled, "model": settings.model}
+    import os
+    return {
+        "ok": True,
+        "model_enabled": settings.model_enabled,
+        "model": settings.model,
+        "image_provider": os.getenv("SLIDELANG_IMAGE_PROVIDER", "(unset)"),
+        "openai_key_present": bool(os.getenv("OPENAI_API_KEY")),
+        "image_model": os.getenv("SLIDELANG_IMAGE_MODEL", "(unset)"),
+    }
 
 
 @app.post("/api/author")
