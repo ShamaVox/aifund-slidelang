@@ -135,37 +135,39 @@ export default function App() {
     autoGenerateImages(withIds);
   };
 
-  // Auto-fill images for every image slide, sequentially, after the deck renders.
-  // The deck appears instantly; each photo drops in as it finishes. Best-effort:
-  // if the image API is unavailable or a slide fails, it's skipped silently.
+  // Auto-fill images for EVERY slide that carries an image prompt (image beside
+  // content, or a standalone image slide), in parallel for speed. The deck is
+  // already on screen; photos drop in as they resolve. Best-effort per slide.
   const autoGenerateImages = async (deckAst) => {
     const targets = deckAst.slides
       .map((s, i) => ({ s, i }))
-      .filter((x) => x.s.type === "image" && x.s.image);
+      .filter((x) => x.s.image);
     if (!targets.length) return;
     const refs = {};
-    for (const { s, i } of targets) {
+    const applyRefs = () => {
+      const a = JSON.parse(JSON.stringify(deckAst));
+      for (const [idx, rid] of Object.entries(refs)) if (a.slides[idx]) a.slides[idx].imageRef = rid;
+      setSrc(serialize(a));
+      setBaseAst((prev) => {
+        const b = JSON.parse(JSON.stringify(prev || a));
+        for (const [idx, rid] of Object.entries(refs)) if (b.slides[idx]) b.slides[idx].imageRef = rid;
+        return b;
+      });
+    };
+    await Promise.all(targets.map(async ({ s, i }) => {
       try {
         const res = await fetch("/api/image", {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ prompt: s.image }),
         });
-        if (!res.ok) continue;
+        if (!res.ok) return;
         const { id, data_url } = await res.json();
-        if (!id || !data_url) continue;
+        if (!id || !data_url) return;
         setImageAssets((m) => ({ ...m, [id]: data_url }));
         refs[i] = id;
-        // apply all resolved refs onto a fresh copy of the deck so the slides render
-        const a = JSON.parse(JSON.stringify(deckAst));
-        for (const [idx, rid] of Object.entries(refs)) if (a.slides[idx]) a.slides[idx].imageRef = rid;
-        setSrc(serialize(a));
-        setBaseAst((prev) => {
-          const b = JSON.parse(JSON.stringify(prev || a));
-          for (const [idx, rid] of Object.entries(refs)) if (b.slides[idx]) b.slides[idx].imageRef = rid;
-          return b;
-        });
+        applyRefs(); // update as each photo resolves
       } catch { /* skip this image */ }
-    }
+    }));
   };
 
   // real "Compiler online" indicator: ping the backend health endpoint

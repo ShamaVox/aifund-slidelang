@@ -42,7 +42,7 @@ function ArtFallback({ prompt, th, scale, radius }) {
   );
 }
 
-export default function SlideView({ s, theme, scale = 1, assets = {}, deckTitle = "", total = 0, editable = false, onEdit = () => {} }) {
+export default function SlideView({ s, theme, scale = 1, assets = {}, deckTitle = "", total = 0, editable = false, onEdit = () => { } }) {
   const th = THEMES[theme] || THEMES.midnight;
   const dark = th.fg > th.bg;
   const pad = { padding: `${CANVAS.padY * scale}px ${CANVAS.padX * scale}px` };
@@ -73,10 +73,10 @@ export default function SlideView({ s, theme, scale = 1, assets = {}, deckTitle 
 
   const footer = (showChrome && !isCover)
     ? <div style={{ position: "absolute", left: CANVAS.padX * scale, right: CANVAS.padX * scale, bottom: 26 * scale, zIndex: 2, display: "flex", alignItems: "center", gap: 10 * scale, fontFamily: MONO, fontSize: 12 * scale, color: th.muted }}>
-        <span style={{ textTransform: "uppercase" }}>{deckTitle || "SlideLang"}</span>
-        <div style={{ flex: 1, height: 1, background: th.rule }} />
-        {total > 0 && <span>{String((s._index ?? 0) + 1).padStart(2, "0")} / {String(total).padStart(2, "0")}</span>}
-      </div>
+      <span style={{ textTransform: "uppercase" }}>{deckTitle || "SlideLang"}</span>
+      <div style={{ flex: 1, height: 1, background: th.rule }} />
+      {total > 0 && <span>{String((s._index ?? 0) + 1).padStart(2, "0")} / {String(total).padStart(2, "0")}</span>}
+    </div>
     : null;
 
   const rule = <div style={{ width: 44 * scale, height: 3 * scale, background: th.accent, margin: `${16 * scale}px 0 ${26 * scale}px`, borderRadius: 3 }} />;
@@ -110,67 +110,76 @@ export default function SlideView({ s, theme, scale = 1, assets = {}, deckTitle 
             {eyebrow(s.type.startsWith("chart.") ? "Data" : s.type === "metrics" ? "Metrics" : s.type === "table" ? "Detail" : s.type === "math" ? "Model" : "")}
             <Edit editable={editable} onCommit={(v) => set("heading", v)} placeholder="Heading" style={{ fontFamily: DISPLAY, fontSize: 42 * scale, fontWeight: 600, color: th.fg, lineHeight: 1.08, letterSpacing: -0.8 }}>{s.heading}</Edit>
             {rule}
-            <div style={{ flex: 1, minHeight: 0, paddingBottom: 40 * scale }}>
-              {s.type === "bullets" && (
-                <div style={{ display: "flex", flexDirection: "column", gap: 18 * scale, maxWidth: "92%" }}>
-                  {s.points.map((p, i) => (
-                    <div key={i} style={{ display: "flex", gap: 16 * scale, alignItems: "flex-start", position: "relative", paddingRight: editable ? 22 * scale : 0 }}>
-                      <div style={{ fontFamily: MONO, fontSize: 15 * scale, color: th.accent, fontWeight: 700, marginTop: 4 * scale, minWidth: 22 * scale }}>{String(i + 1).padStart(2, "0")}</div>
-                      <Edit editable={editable} onCommit={(v) => setArr("points", i, v)} placeholder="bullet" style={{ fontSize: 24 * scale, lineHeight: 1.4, color: th.fg, flex: 1 }}>{p}</Edit>
-                      {del(() => delArr("points", i))}
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {s.type === "metrics" && (
-                <div style={{ display: "grid", gridTemplateColumns: s.metrics.length > 2 ? "1fr 1fr 1fr" : "1fr 1fr", gap: 16 * scale }}>
-                  {s.metrics.map((m, i) => (
-                    <div key={i} style={{ borderRadius: 14 * scale, padding: `${22 * scale}px`, background: dark ? "rgba(255,255,255,.035)" : "rgba(0,0,0,.02)", border: `1px solid ${th.rule}`, position: "relative", overflow: "hidden" }}>
-                      <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 3 * scale, background: th.accent }} />
-                      {del(() => delArr("metrics", i))}
-                      <Edit editable={editable} onCommit={(v) => setObjArr("metrics", i, "label", v)} placeholder="label" style={{ fontFamily: MONO, fontSize: 12.5 * scale, color: th.muted, textTransform: "uppercase", letterSpacing: 1.5 }}>{m.label}</Edit>
-                      <div style={{ display: "flex", alignItems: "baseline", gap: 10 * scale, marginTop: 12 * scale, flexWrap: "wrap" }}>
-                        <Edit editable={editable} onCommit={(v) => setObjArr("metrics", i, "value", v)} placeholder="value" style={{ fontFamily: DISPLAY, fontSize: 46 * scale, fontWeight: 600, lineHeight: 1, letterSpacing: -1 }}>{m.value}</Edit>
-                        {(m.delta || editable) && <Edit editable={editable} onCommit={(v) => setObjArr("metrics", i, "delta", v)} placeholder="Δ" style={{ fontSize: 15 * scale, fontWeight: 700, fontFamily: MONO, color: /^-/.test(m.delta) ? "#E5637A" : th.accent, background: /^-/.test(m.delta) ? "rgba(229,99,122,.12)" : `${th.accent}1e`, padding: `${2 * scale}px ${8 * scale}px`, borderRadius: 20 }}>{m.delta}</Edit>}
+            <div style={{ flex: 1, minHeight: 0, paddingBottom: 40 * scale, display: (s.image && s.type !== "image") ? "flex" : "block", gap: 28 * scale, alignItems: "stretch" }}>
+              <div style={{ flex: (s.image && s.type !== "image") ? "1 1 56%" : "1 1 auto", minWidth: 0 }}>
+                {s.type === "bullets" && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 18 * scale, maxWidth: "92%" }}>
+                    {s.points.map((p, i) => (
+                      <div key={i} style={{ display: "flex", gap: 16 * scale, alignItems: "flex-start", position: "relative", paddingRight: editable ? 22 * scale : 0 }}>
+                        <div style={{ fontFamily: MONO, fontSize: 15 * scale, color: th.accent, fontWeight: 700, marginTop: 4 * scale, minWidth: 22 * scale }}>{String(i + 1).padStart(2, "0")}</div>
+                        <Edit editable={editable} onCommit={(v) => setArr("points", i, v)} placeholder="bullet" style={{ fontSize: 24 * scale, lineHeight: 1.4, color: th.fg, flex: 1 }}>{p}</Edit>
+                        {del(() => delArr("points", i))}
                       </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {s.type.startsWith("chart.") && (
-                <div style={{ background: dark ? "rgba(255,255,255,.025)" : "rgba(0,0,0,.015)", border: `1px solid ${th.rule}`, borderRadius: 14 * scale, padding: `${16 * scale}px ${12 * scale}px ${8 * scale}px` }}>
-                  <Chart s={s} th={th} scale={scale} />
-                </div>
-              )}
-
-              {s.type === "table" && (
-                <div style={{ width: "100%", border: `1px solid ${th.rule}`, borderRadius: 12 * scale, overflow: "hidden" }}>
-                  <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.max(1, s.cols.length)}, 1fr)` }}>
-                    {s.cols.map((c, i) => (
-                      <Edit key={"c" + i} editable={editable} onCommit={(v) => setArr("cols", i, v)} placeholder="col" style={{ fontFamily: MONO, fontSize: 13 * scale, color: th.accent, textTransform: "uppercase", letterSpacing: 1, padding: `${13 * scale}px ${14 * scale}px`, background: dark ? "rgba(255,255,255,.04)" : "rgba(0,0,0,.03)", fontWeight: 600 }}>{c}</Edit>
                     ))}
-                    {s.rows.map((r, ri) => r.map((cell, ci) => (
-                      <div key={ri + "-" + ci} style={{ position: "relative", borderTop: `1px solid ${th.rule}`, background: ri % 2 ? (dark ? "rgba(255,255,255,.015)" : "rgba(0,0,0,.012)") : "transparent" }}>
-                        <Edit editable={editable} onCommit={(v) => setCell(ri, ci, v)} placeholder="cell" style={{ fontSize: 19 * scale, padding: `${13 * scale}px ${14 * scale}px`, color: th.fg }}>{cell}</Edit>
-                        {ci === r.length - 1 && del(() => delRow(ri))}
-                      </div>
-                    )))}
                   </div>
-                </div>
-              )}
+                )}
 
-              {s.type === "math" && (
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", background: dark ? "rgba(255,255,255,.02)" : "rgba(0,0,0,.015)", border: `1px solid ${th.rule}`, borderRadius: 14 * scale, padding: 24 * scale }}>
-                  <Formula src={s.formula} color={th.fg} />
-                </div>
-              )}
+                {s.type === "metrics" && (
+                  <div style={{ display: "grid", gridTemplateColumns: s.metrics.length > 2 ? "1fr 1fr 1fr" : "1fr 1fr", gap: 16 * scale }}>
+                    {s.metrics.map((m, i) => (
+                      <div key={i} style={{ borderRadius: 14 * scale, padding: `${22 * scale}px`, background: dark ? "rgba(255,255,255,.035)" : "rgba(0,0,0,.02)", border: `1px solid ${th.rule}`, position: "relative", overflow: "hidden" }}>
+                        <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 3 * scale, background: th.accent }} />
+                        {del(() => delArr("metrics", i))}
+                        <Edit editable={editable} onCommit={(v) => setObjArr("metrics", i, "label", v)} placeholder="label" style={{ fontFamily: MONO, fontSize: 12.5 * scale, color: th.muted, textTransform: "uppercase", letterSpacing: 1.5 }}>{m.label}</Edit>
+                        <div style={{ display: "flex", alignItems: "baseline", gap: 10 * scale, marginTop: 12 * scale, flexWrap: "wrap" }}>
+                          <Edit editable={editable} onCommit={(v) => setObjArr("metrics", i, "value", v)} placeholder="value" style={{ fontFamily: DISPLAY, fontSize: 46 * scale, fontWeight: 600, lineHeight: 1, letterSpacing: -1 }}>{m.value}</Edit>
+                          {(m.delta || editable) && <Edit editable={editable} onCommit={(v) => setObjArr("metrics", i, "delta", v)} placeholder="Δ" style={{ fontSize: 15 * scale, fontWeight: 700, fontFamily: MONO, color: /^-/.test(m.delta) ? "#E5637A" : th.accent, background: /^-/.test(m.delta) ? "rgba(229,99,122,.12)" : `${th.accent}1e`, padding: `${2 * scale}px ${8 * scale}px`, borderRadius: 20 }}>{m.delta}</Edit>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
 
-              {s.type === "image" && (
-                (s.imageRef && assets[s.imageRef])
-                  ? <img src={assets[s.imageRef]} alt={s.image || "image"} style={{ width: "100%", height: 300 * scale, objectFit: "cover", borderRadius: 14 * scale, border: `1px solid ${th.rule}`, display: "block" }} />
-                  : <ArtFallback prompt={s.image} th={th} scale={scale} radius={14 * scale} />
+                {s.type.startsWith("chart.") && (
+                  <div style={{ background: dark ? "rgba(255,255,255,.025)" : "rgba(0,0,0,.015)", border: `1px solid ${th.rule}`, borderRadius: 14 * scale, padding: `${16 * scale}px ${12 * scale}px ${8 * scale}px` }}>
+                    <Chart s={s} th={th} scale={scale} />
+                  </div>
+                )}
+
+                {s.type === "table" && (
+                  <div style={{ width: "100%", border: `1px solid ${th.rule}`, borderRadius: 12 * scale, overflow: "hidden" }}>
+                    <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.max(1, s.cols.length)}, 1fr)` }}>
+                      {s.cols.map((c, i) => (
+                        <Edit key={"c" + i} editable={editable} onCommit={(v) => setArr("cols", i, v)} placeholder="col" style={{ fontFamily: MONO, fontSize: 13 * scale, color: th.accent, textTransform: "uppercase", letterSpacing: 1, padding: `${13 * scale}px ${14 * scale}px`, background: dark ? "rgba(255,255,255,.04)" : "rgba(0,0,0,.03)", fontWeight: 600 }}>{c}</Edit>
+                      ))}
+                      {s.rows.map((r, ri) => r.map((cell, ci) => (
+                        <div key={ri + "-" + ci} style={{ position: "relative", borderTop: `1px solid ${th.rule}`, background: ri % 2 ? (dark ? "rgba(255,255,255,.015)" : "rgba(0,0,0,.012)") : "transparent" }}>
+                          <Edit editable={editable} onCommit={(v) => setCell(ri, ci, v)} placeholder="cell" style={{ fontSize: 19 * scale, padding: `${13 * scale}px ${14 * scale}px`, color: th.fg }}>{cell}</Edit>
+                          {ci === r.length - 1 && del(() => delRow(ri))}
+                        </div>
+                      )))}
+                    </div>
+                  </div>
+                )}
+
+                {s.type === "math" && (
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", background: dark ? "rgba(255,255,255,.02)" : "rgba(0,0,0,.015)", border: `1px solid ${th.rule}`, borderRadius: 14 * scale, padding: 24 * scale }}>
+                    <Formula src={s.formula} color={th.fg} />
+                  </div>
+                )}
+
+                {s.type === "image" && (
+                  (s.imageRef && assets[s.imageRef])
+                    ? <img src={assets[s.imageRef]} alt={s.image || "image"} style={{ width: "100%", height: 300 * scale, objectFit: "cover", borderRadius: 14 * scale, border: `1px solid ${th.rule}`, display: "block" }} />
+                    : <ArtFallback prompt={s.image} th={th} scale={scale} radius={14 * scale} />
+                )}
+              </div>
+              {(s.image && s.type !== "image") && (
+                <div style={{ flex: "0 0 40%", display: "flex", alignItems: "center", minWidth: 0 }}>
+                  {(s.imageRef && assets[s.imageRef])
+                    ? <img src={assets[s.imageRef]} alt={s.image} style={{ width: "100%", height: 340 * scale, objectFit: "cover", borderRadius: 16 * scale, border: `1px solid ${th.rule}`, display: "block" }} />
+                    : <ArtFallback prompt={s.image} th={th} scale={scale} radius={16 * scale} />}
+                </div>
               )}
             </div>
           </>
