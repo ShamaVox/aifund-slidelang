@@ -34,6 +34,8 @@ TOOLS = [{
         },
         "required": ["spec"],
     },
+    # cache the (static) tool definition across every turn of the loop
+    "cache_control": {"type": "ephemeral"},
 }]
 
 SYSTEM = (
@@ -67,7 +69,9 @@ async def run_agent(goal: str, max_turns: int = 5) -> dict[str, Any]:
             for _turn in range(max_turns):
                 body = {
                     "model": settings.model, "max_tokens": 4000,
-                    "system": SYSTEM, "tools": TOOLS, "messages": messages,
+                    # cache the static system prompt across turns (grammar + rules)
+                    "system": [{"type": "text", "text": SYSTEM, "cache_control": {"type": "ephemeral"}}],
+                    "tools": TOOLS, "messages": messages,
                 }
                 resp = await client.post("https://api.anthropic.com/v1/messages", json=body, headers=headers)
                 resp.raise_for_status()

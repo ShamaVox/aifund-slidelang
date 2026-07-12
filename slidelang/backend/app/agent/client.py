@@ -34,7 +34,11 @@ async def call_model(prompt: str, system: str) -> ModelResult:
     body = {
         "model": settings.model,
         "max_tokens": 8000,
-        "system": system,
+        # Prompt caching: the system prompt (grammar + authoring rules) is large and
+        # identical on every call, so we cache it. Repeat calls within the cache TTL
+        # skip re-processing it, which cuts latency and cost. Safe if under the min
+        # cacheable size: the API silently ignores the directive.
+        "system": [{"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}],
         "messages": [{"role": "user", "content": prompt}],
     }
     headers = {
