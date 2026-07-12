@@ -56,8 +56,9 @@ SYSTEM = (
     "- Include at least one chart and one metrics slide with real, plausible numbers. When the "
     "same numbers drive a chart, declare a `dataset` once and `bind` it.\n"
     "- Prefer a table for comparisons and a math/formula slide when there's a model to show.\n"
-    "- Add ONE image slide only if it genuinely fits, with a vivid, literal description of a "
-    "PHOTOGRAPH (a real scene), not a diagram.\n"
+    "- Include an image slide when the topic is visual (marketing, product, brand, "
+    "consumer, design, real-world scenes) — use a vivid, literal description of a "
+    "PHOTOGRAPH (a real scene), not a diagram. For dry/technical topics, an image is optional.\n"
     "- Choose a theme that fits the tone: midnight (tech), paper (formal), sunrise (bold/consumer), "
     "forest (calm/sustainability).\n\n"
 
