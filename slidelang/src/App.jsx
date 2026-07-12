@@ -15,6 +15,7 @@ import { threeWayMerge } from "./merge/merge.js";
 import { DEFAULT_PLUGINS } from "./plugins/index.js";
 import { kpi, fetchMetrics } from "./agent/kpi.js";
 import SlideView from "./render/SlideView.jsx";
+import AgentApiDemo from "./AgentApiDemo.jsx";
 import HomeView from "./HomeView.jsx";
 
 const C = {
@@ -87,6 +88,7 @@ export default function App() {
   const [exportOpen, setExportOpen] = useState(false);
   const [showRegen, setShowRegen] = useState(false);
   const [editMode, setEditMode] = useState(false); // review by default; opt-in to edit
+  const [agentDemo, setAgentDemo] = useState(false); // "agent via API" demo modal
 
   const built = useMemo(() => build(src, { plugins: DEFAULT_PLUGINS }), [src]);
   const isEmpty = !src.trim();
@@ -138,7 +140,9 @@ export default function App() {
     return () => { alive = false; };
   }, []);
 
-  const writeSpec = () => { resetDeckState(); setSrc(""); setView("studio"); setTab("diagnostics"); };
+  const writeSpec = () => { resetDeckState(); setSrc(""); setView("studio"); setShowCode(true); setTab("diagnostics"); };
+  // load a spec that came from the Agent API demo into the app (renders the deck)
+  const loadAgentSpec = (spec) => { resetDeckState(); setSrc(spec); setShowCode(true); setView("studio"); setAgentDemo(false); };
 
   const editField = (patch) => {
     const a = JSON.parse(JSON.stringify(ast));
@@ -268,7 +272,12 @@ export default function App() {
   const lineCount = src.split("\n").length;
 
   if (view === "home") {
-    return <HomeView prompt={prompt} setPrompt={setPrompt} onGenerate={generate} onWriteSpec={writeSpec} running={running} apiOnline={apiOnline} />;
+    return (
+      <>
+        <HomeView prompt={prompt} setPrompt={setPrompt} onGenerate={generate} onWriteSpec={writeSpec} running={running} apiOnline={apiOnline} onAgentApi={() => setAgentDemo(true)} />
+        {agentDemo && <AgentApiDemo onClose={() => setAgentDemo(false)} onLoad={loadAgentSpec} />}
+      </>
+    );
   }
 
   return (
@@ -279,6 +288,7 @@ export default function App() {
           <b>SlideLang</b><span className="tag">deck-as-code</span>
         </div>
         <div className="spacer" />
+        <button className="btn" onClick={() => setAgentDemo(true)} title="Show an agent building a deck via the API"><Bot size={14} /> Agent API</button>
         <button className="btn" onClick={() => { resetDeckState(); setSrc(""); setView("home"); }}><FileCode2 size={14} /> New deck</button>
         <button className="btn primary" onClick={() => setPresent(true)}><Play size={14} /> Present</button>
         <div className="exportmenu">
@@ -351,13 +361,13 @@ export default function App() {
 
       <div className="main" style={{ gridTemplateColumns: [showCode ? "minmax(280px,.8fr)" : null, "minmax(440px,1.7fr)", showDetails ? "minmax(300px,.85fr)" : null].filter(Boolean).join(" ") }}>
         {showCode && (
-        <section className="col editor">
-          <div className="head"><FileCode2 size={14} /><span>deck.slide</span><div className="spacer" /><small>{lineCount} lines</small></div>
-          <div className="code">
-            <div className="gutter">{Array.from({ length: lineCount }).map((_, i) => <div key={i}>{i + 1}</div>)}</div>
-            <textarea value={src} onChange={(e) => setSrc(e.target.value)} spellCheck={false} placeholder={SPEC_PLACEHOLDER} />
-          </div>
-        </section>
+          <section className="col editor">
+            <div className="head"><FileCode2 size={14} /><span>deck.slide</span><div className="spacer" /><small>{lineCount} lines</small></div>
+            <div className="code">
+              <div className="gutter">{Array.from({ length: lineCount }).map((_, i) => <div key={i}>{i + 1}</div>)}</div>
+              <textarea value={src} onChange={(e) => setSrc(e.target.value)} spellCheck={false} placeholder={SPEC_PLACEHOLDER} />
+            </div>
+          </section>
         )}
 
         {/* preview */}
@@ -447,69 +457,73 @@ export default function App() {
 
         {/* panels */}
         {showDetails && (
-        <section className="col panels">
-          <div className="tabs">
-            {[["diagnostics", "Diagnostics", ScanLine], ["review", "Reviewer", Star], ["kpi", "KPIs", Activity], ["agent", "Agent log", Terminal], ["repairs", "Repairs", Wrench]].map(([id, label, Ic]) => (
-              <button key={id} className={tab === id ? "on" : ""} onClick={() => setTab(id)}><Ic size={13} /> {label}</button>
-            ))}
-          </div>
-          <div className="panelbody">
-            {tab === "diagnostics" && (isEmpty
-              ? <div className="faint">No deck yet. Type a prompt above, or start writing a spec on the left.</div>
-              : diagnostics.length === 0
-                ? <div className="clean"><CheckCircle2 size={15} /> Spec compiles clean. No diagnostics.</div>
-                : diagnostics.map((d, i) => { const M = sevMeta[d.sev]; const Ic = M.icon; return (
-                  <div key={i} className="diag" onClick={() => d.fix && applyRepairs()} style={{ cursor: d.fix ? "pointer" : "default" }}>
-                    <Ic size={14} color={M.color} />
-                    <div><div><span style={{ color: M.color }}>{d.code}</span> · line {d.line} {d.fix && <span style={{ color: C.violet }}>· fixable</span>}</div><div className="msg">{d.msg}</div></div>
-                  </div>); })
-            )}
-            {tab === "review" && (
-              <div>
-                <div className="scorecard">
-                  <div className="score" style={{ color: review.score >= 80 ? C.teal : review.score >= 60 ? C.amber : C.coral }}>{review.score}</div>
-                  <div><b>Reviewer agent</b><div className="msg">Independent critique of the compiled deck.</div></div>
-                </div>
-                {review.notes.length === 0 ? <div className="clean"><CheckCircle2 size={15} /> No notes — the deck reads well.</div>
-                  : review.notes.map((n, i) => (
-                    <div key={i} className="diag"><ClipboardCheck size={14} color={C.violet} /><div><div style={{ color: C.violet }}>{n.kind}</div><div className="msg">{n.msg}</div></div></div>
-                  ))}
-              </div>
-            )}
-            {tab === "kpi" && (
-              metrics === null
-                ? <div className="faint">Start the API (<span className="mono">npm run api</span>) and generate a deck — live metrics appear here.</div>
-                : (
-                  <div className="kpis">
-                    {[
-                      ["Decks generated", metrics.decks_generated],
-                      ["First-pass spec validity", metrics.first_pass_spec_validity_pct + "%"],
-                      ["Slides accepted unedited", metrics.slides_accepted_unedited_pct + "%"],
-                      ["Edit-to-ship (s)", metrics.edit_to_ship_seconds],
-                      ["Edits preserved on regen", metrics.edits_preserved_on_regen],
-                      ["Regenerate-clobber rate", metrics.regenerate_clobber_rate_pct + "%"],
-                      ["Number-drift incidents", metrics.number_drift_incidents],
-                      ["Avg gen latency (ms)", metrics.avg_gen_latency_ms],
-                    ].map(([k, v]) => (
-                      <div key={k} className="kpi"><div className="kv">{v}</div><div className="kk">{k}</div></div>
-                    ))}
+          <section className="col panels">
+            <div className="tabs">
+              {[["diagnostics", "Diagnostics", ScanLine], ["review", "Reviewer", Star], ["kpi", "KPIs", Activity], ["agent", "Agent log", Terminal], ["repairs", "Repairs", Wrench]].map(([id, label, Ic]) => (
+                <button key={id} className={tab === id ? "on" : ""} onClick={() => setTab(id)}><Ic size={13} /> {label}</button>
+              ))}
+            </div>
+            <div className="panelbody">
+              {tab === "diagnostics" && (isEmpty
+                ? <div className="faint">No deck yet. Type a prompt above, or start writing a spec on the left.</div>
+                : diagnostics.length === 0
+                  ? <div className="clean"><CheckCircle2 size={15} /> Spec compiles clean. No diagnostics.</div>
+                  : diagnostics.map((d, i) => {
+                    const M = sevMeta[d.sev]; const Ic = M.icon; return (
+                      <div key={i} className="diag" onClick={() => d.fix && applyRepairs()} style={{ cursor: d.fix ? "pointer" : "default" }}>
+                        <Ic size={14} color={M.color} />
+                        <div><div><span style={{ color: M.color }}>{d.code}</span> · line {d.line} {d.fix && <span style={{ color: C.violet }}>· fixable</span>}</div><div className="msg">{d.msg}</div></div>
+                      </div>);
+                  })
+              )}
+              {tab === "review" && (
+                <div>
+                  <div className="scorecard">
+                    <div className="score" style={{ color: review.score >= 80 ? C.teal : review.score >= 60 ? C.amber : C.coral }}>{review.score}</div>
+                    <div><b>Reviewer agent</b><div className="msg">Independent critique of the compiled deck.</div></div>
                   </div>
-                )
-            )}
-            {tab === "agent" && (log.length === 0
-              ? <div className="faint">Run “Agent authors” to see the author → verify → repair loop.</div>
-              : log.map((l, i) => <div key={i} className={"logline " + l.kind}><span>{l.kind === "head" ? "▸" : l.kind === "fix" ? "⟳" : "·"}</span> {l.m}</div>)
-            )}
-            {tab === "repairs" && (repairs.length === 0
-              ? <div className="faint">No repairs applied. The spec compiled clean.</div>
-              : repairs.map((r, i) => <div key={i} className="diag"><Wrench size={13} color={C.violet} /><div><span style={{ color: C.violet }}>{r.code}</span> <span className="msg">{r.msg}</span></div></div>)
-            )}
-          </div>
-        </section>
+                  {review.notes.length === 0 ? <div className="clean"><CheckCircle2 size={15} /> No notes — the deck reads well.</div>
+                    : review.notes.map((n, i) => (
+                      <div key={i} className="diag"><ClipboardCheck size={14} color={C.violet} /><div><div style={{ color: C.violet }}>{n.kind}</div><div className="msg">{n.msg}</div></div></div>
+                    ))}
+                </div>
+              )}
+              {tab === "kpi" && (
+                metrics === null
+                  ? <div className="faint">Start the API (<span className="mono">npm run api</span>) and generate a deck — live metrics appear here.</div>
+                  : (
+                    <div className="kpis">
+                      {[
+                        ["Decks generated", metrics.decks_generated],
+                        ["First-pass spec validity", metrics.first_pass_spec_validity_pct + "%"],
+                        ["Slides accepted unedited", metrics.slides_accepted_unedited_pct + "%"],
+                        ["Edit-to-ship (s)", metrics.edit_to_ship_seconds],
+                        ["Edits preserved on regen", metrics.edits_preserved_on_regen],
+                        ["Regenerate-clobber rate", metrics.regenerate_clobber_rate_pct + "%"],
+                        ["Number-drift incidents", metrics.number_drift_incidents],
+                        ["Avg gen latency (ms)", metrics.avg_gen_latency_ms],
+                      ].map(([k, v]) => (
+                        <div key={k} className="kpi"><div className="kv">{v}</div><div className="kk">{k}</div></div>
+                      ))}
+                    </div>
+                  )
+              )}
+              {tab === "agent" && (log.length === 0
+                ? <div className="faint">Run “Agent authors” to see the author → verify → repair loop.</div>
+                : log.map((l, i) => <div key={i} className={"logline " + l.kind}><span>{l.kind === "head" ? "▸" : l.kind === "fix" ? "⟳" : "·"}</span> {l.m}</div>)
+              )}
+              {tab === "repairs" && (repairs.length === 0
+                ? <div className="faint">No repairs applied. The spec compiled clean.</div>
+                : repairs.map((r, i) => <div key={i} className="diag"><Wrench size={13} color={C.violet} /><div><span style={{ color: C.violet }}>{r.code}</span> <span className="msg">{r.msg}</span></div></div>)
+              )}
+            </div>
+          </section>
         )}
       </div>
 
       {toast && <div className="toast">{toast}</div>}
+
+      {agentDemo && <AgentApiDemo onClose={() => setAgentDemo(false)} onLoad={loadAgentSpec} />}
 
       {diffModal && (
         <div className="modalwrap" onClick={(e) => { if (e.target.className === "modalwrap") setDiffModal(null); }}>

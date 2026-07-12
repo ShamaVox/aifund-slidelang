@@ -13,7 +13,7 @@ const STEPS = [
   { icon: MonitorPlay, k: "03", t: "Present", d: "Edit in the browser, regenerate without losing your edits, then publish or present from one workflow." },
 ];
 
-export default function HomeView({ prompt, setPrompt, onGenerate, onWriteSpec, running, apiOnline }) {
+export default function HomeView({ prompt, setPrompt, onGenerate, onWriteSpec, running, apiOnline, onAgentApi }) {
   return (
     <div className="home">
       <div className="home-bg" aria-hidden />
@@ -71,6 +71,14 @@ export default function HomeView({ prompt, setPrompt, onGenerate, onWriteSpec, r
           <button className="link-btn" onClick={onWriteSpec}>
             <FileCode2 size={13} /> Write a spec yourself
           </button>
+          {onAgentApi && (
+            <>
+              <span className="sep" />
+              <button className="link-btn" onClick={onAgentApi}>
+                <Bot size={13} /> Agent builds it (API)
+              </button>
+            </>
+          )}
         </div>
       </main>
 
