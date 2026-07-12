@@ -1786,3 +1786,104 @@ div:hover>.ce-del {
   color: var(--amber);
   font-style: normal
 }
+
+/* ---- Agent modal: tabs, goal, live trace ---- */
+.agenttabs {
+  display: flex;
+  gap: 4px;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--line)
+}
+
+.agenttabs button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--dim);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 12px 14px;
+  cursor: pointer;
+  font-family: var(--sans)
+}
+
+.agenttabs button.on {
+  color: var(--text);
+  border-bottom-color: var(--amber)
+}
+
+.agentgoal {
+  width: 100%;
+  background: var(--panel2);
+  border: 1px solid var(--line2);
+  border-radius: 10px;
+  padding: 11px 14px;
+  color: var(--text);
+  font-size: 14px;
+  font-family: var(--sans);
+  outline: none
+}
+
+.agentgoal:focus {
+  border-color: var(--amber);
+  box-shadow: 0 0 0 3px rgba(232, 164, 76, .14)
+}
+
+.agenttrace {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+  max-height: 280px;
+  overflow: auto
+}
+
+.tracestep {
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+  padding: 8px 11px;
+  border-radius: 9px;
+  background: var(--panel2);
+  border: 1px solid var(--line);
+  font-size: 12.5px;
+  line-height: 1.45
+}
+
+.tracestep .tsi {
+  margin-top: 2px;
+  flex-shrink: 0;
+  color: var(--dim)
+}
+
+.tracestep .tk {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  color: var(--faint);
+  margin-right: 6px
+}
+
+.tracestep.tool {
+  border-color: rgba(139, 123, 232, .35)
+}
+
+.tracestep.tool .tsi {
+  color: var(--violet)
+}
+
+.tracestep.final {
+  border-color: rgba(70, 192, 182, .4)
+}
+
+.tracestep.final .tsi {
+  color: var(--teal)
+}
+
+.tracestep.goal .tsi {
+  color: var(--amber)
+}

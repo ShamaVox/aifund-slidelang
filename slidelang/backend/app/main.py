@@ -26,7 +26,7 @@ from .image.provider import get_provider
 from .image.verifier import verify as verify_image
 from .kpi import store as kpi
 from .logging_conf import configure, log_event, new_request_id
-from .schemas import AuthorRequest, CompileRequest, ImageRequest, KpiEvent, PublishRequest
+from .schemas import AgentGoalRequest, AuthorRequest, CompileRequest, ImageRequest, KpiEvent, PublishRequest
 
 configure()
 log = logging.getLogger("slidelang.api")
@@ -52,21 +52,21 @@ async def request_context(request: Request, call_next):
 
 @app.get("/api/health")
 async def health():
-    import os
-    return {
-        "ok": True,
-        "model_enabled": settings.model_enabled,
-        "model": settings.model,
-        "image_provider": os.getenv("SLIDELANG_IMAGE_PROVIDER", "(unset)"),
-        "openai_key_present": bool(os.getenv("OPENAI_API_KEY")),
-        "image_model": os.getenv("SLIDELANG_IMAGE_MODEL", "(unset)"),
-    }
+    return {"ok": True, "model_enabled": settings.model_enabled, "model": settings.model}
 
 
 @app.post("/api/author")
 async def api_author(req: AuthorRequest):
     result = await author(req.prompt, use_model=req.use_model, basis=req.basis)
     return result.to_dict()
+
+
+@app.post("/api/agent")
+async def api_agent(req: AgentGoalRequest):
+    """Live agentic authoring: an LLM operates the compiler as a tool, iterating
+    until the deck is clean. Returns a step-by-step trace of what the agent did."""
+    from .agent.agentic import run_agent
+    return await run_agent(req.goal)
 
 
 @app.post("/api/image")

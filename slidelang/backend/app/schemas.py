@@ -11,6 +11,10 @@ class AuthorRequest(BaseModel):
     basis: Optional[str] = None  # existing spec to update (grounds a regenerate)
 
 
+class AgentGoalRequest(BaseModel):
+    goal: str = Field(min_length=1, max_length=2000)
+
+
 class CompileRequest(BaseModel):
     spec: str = Field(max_length=100_000)
 
