@@ -6,6 +6,7 @@ import { GRAMMAR } from "./grammar.js";
 import { simulateAuthor, updateAuthor } from "./author.js";
 import { serialize } from "../compiler/serialize.js";
 import { build } from "../compiler/compile.js";
+import { critiqueAndImprove, planEdits } from "./reasoning.js";
 
 async function callAuthorAPI(prompt) {
   const res = await fetch("/api/author", {
@@ -50,6 +51,9 @@ export async function authorDeck(prompt, { useModel = true, onStep = () => {} } 
   }
   onStep("compile", {});
   onStep("render", {});
+  // SELF-CRITIQUE: the agent reviews its own draft and applies safe revisions,
+  // surfacing (not silently applying) anything it leaves for the human.
+  current = critiqueAndImprove(current, { onStep });
   const final = build(current);
   onStep("done", { log: `compiled ${final.slides.length} slides · ${final.repairs.length} auto-repair(s) · ${final.errors.length} unresolved error(s)`, kind: "head" });
   return current;
@@ -57,8 +61,10 @@ export async function authorDeck(prompt, { useModel = true, onStep = () => {} } 
 
 // Second-prompt regeneration: produce a NEW base from an update instruction,
 // grounded in the current deck so it updates rather than starts over.
-export async function regenerate(baseAst, prompt, { useModel = true, onStep = () => {} } = {}) {
+export async function regenerate(baseAst, prompt, { useModel = true, overrides = {}, onStep = () => {} } = {}) {
   onStep("plan", { log: `regenerate · "${prompt}"`, kind: "head" });
+  // EDIT-PLAN: state what will change and what is protected BEFORE touching anything.
+  planEdits(baseAst, prompt, overrides, { onStep });
   const basisSpec = serialize(baseAst);
   let dsl = null;
   if (useModel) {
