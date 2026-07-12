@@ -16,7 +16,7 @@ SLIDE_TYPES = [
     "chart.area", "chart.pie", "table", "math", "image", "quote",
 ]
 CHART_TYPES = {"chart.bar", "chart.line", "chart.area", "chart.pie"}
-LIMITS = {"bullets": 6, "heading_chars": 58, "metrics": 4, "cols": 5}
+LIMITS = {"bullets": 6, "heading_chars": 90, "metrics": 4, "cols": 5}
 
 
 def _split_args(s: str) -> list[str]:
@@ -160,7 +160,9 @@ def repair(ast: dict) -> dict:
             s["heading"] = (s["points"][0][:40] if s["points"] else s["type"].capitalize())
             repairs.append({"code": "W101", "msg": f'Synthesized heading (line {s["line"]}).'})
         if s["heading"] and len(s["heading"]) > LIMITS["heading_chars"]:
-            s["heading"] = s["heading"][:LIMITS["heading_chars"] - 1].rstrip() + "\u2026"
+            cut = s["heading"][:LIMITS["heading_chars"]]
+            at = cut.rfind(" ")
+            s["heading"] = (cut[:at] if at > 40 else cut).rstrip() + "\u2026"
             repairs.append({"code": "W202", "msg": f'Trimmed heading (line {s["line"]}).'})
         if s["type"] in CHART_TYPES:
             before = len(s["data"]); s["data"] = [p for p in s["data"] if not p.get("_bad")]

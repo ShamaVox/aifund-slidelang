@@ -3,7 +3,7 @@
 // signal the agent uses to self-correct.
 import { SLIDE_TYPES } from "./parser.js";
 
-export const LIMITS = { bullets: 6, headingChars: 58, metrics: 4, pointChars: 92, rows: 8, cols: 5 };
+export const LIMITS = { bullets: 6, headingChars: 90, metrics: 4, pointChars: 92, rows: 8, cols: 5 };
 const CHART_TYPES = ["chart.bar", "chart.line", "chart.area", "chart.pie"];
 
 export function lint(ast) {

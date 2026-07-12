@@ -4,23 +4,29 @@ import { THEMES } from "../compiler/parser.js";
 
 function esc(x) { return String(x ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
 
-function slideBody(s, th) {
+function slideBody(s, th, assets) {
+  const img = (s.imageRef && assets && assets[s.imageRef]) ? assets[s.imageRef] : null;
   if (s.type === "title") return `<div class="center"><div class="bar big"></div><h1>${esc(s.heading)}</h1>${s.subtitle ? `<p class="sub">${esc(s.subtitle)}</p>` : ""}</div>`;
   if (s.type === "section") return `<div class="center"><h1 style="color:${th.accent}">${esc(s.heading)}</h1></div>`;
   if (s.type === "quote") return `<div class="center"><blockquote>“${esc(s.quote)}”</blockquote>${s.cite ? `<p class="sub">— ${esc(s.cite)}</p>` : ""}</div>`;
+  if (s.type === "image") {
+    const media = img ? `<img class="hero" src="${img}" alt="">` : `<div class="imgph">image · ${esc(s.image)}</div>`;
+    return `<h2>${esc(s.heading)}</h2><div class="bar"></div>${media}`;
+  }
   let inner = `<h2>${esc(s.heading)}</h2><div class="bar"></div>`;
   if (s.type === "bullets") inner += `<ul>${s.points.map((p) => `<li>${esc(p)}</li>`).join("")}</ul>`;
   if (s.type === "metrics") inner += `<div class="metrics">${s.metrics.map((m) => `<div class="metric"><span class="ml">${esc(m.label)}</span><span class="mv">${esc(m.value)} <em>${esc(m.delta)}</em></span></div>`).join("")}</div>`;
   if (s.type.startsWith("chart.")) { const max = Math.max(...s.data.map((d) => d.value), 1); inner += `<div class="chart">${s.data.map((d) => `<div class="col"><div class="cbar" style="height:${(d.value / max) * 100}%"></div><span>${esc(d.name)}</span></div>`).join("")}</div>`; }
   if (s.type === "table") inner += `<table><tr>${s.cols.map((c) => `<th>${esc(c)}</th>`).join("")}</tr>${s.rows.map((r) => `<tr>${r.map((c) => `<td>${esc(c)}</td>`).join("")}</tr>`).join("")}</table>`;
   if (s.type === "math") inner += `<div class="formula">${esc(s.formula)}</div>`;
-  if (s.type === "image") inner += `<div class="imgph">image · ${esc(s.image)}</div>`;
+  // image beside content
+  if (img) return `<div class="split"><div class="col-left">${inner}</div><div class="col-right"><img src="${img}" alt=""></div></div>`;
   return inner;
 }
 
-export function exportHTML(ast, slides) {
+export function exportHTML(ast, slides, assets = {}) {
   const th = THEMES[ast.theme] || THEMES.midnight;
-  const slidesHTML = slides.map((s, i) => `<section class="slide" data-i="${i}">${slideBody(s, th)}</section>`).join("\n");
+  const slidesHTML = slides.map((s, i) => `<section class="slide" data-i="${i}">${slideBody(s, th, assets)}</section>`).join("\n");
   return `<!doctype html><html><head><meta charset="utf-8"><title>${esc(ast.title)}</title>
 <style>
   :root{--bg:${th.bg};--fg:${th.fg};--muted:${th.muted};--accent:${th.accent};--rule:${th.rule}}
@@ -43,7 +49,16 @@ export function exportHTML(ast, slides) {
   td{padding:1.5vh 1vw;border-bottom:1px solid var(--rule);font-size:1.7vw}
   .formula{font-size:3.5vw;color:var(--accent);font-family:Georgia,serif;margin-top:4vh}
   .imgph{height:40vh;border:1px solid var(--rule);border-radius:14px;background:linear-gradient(135deg,var(--accent),var(--rule));display:flex;align-items:flex-end;padding:2vh;color:var(--muted);font-family:monospace;margin-top:2vh}
+  .hero{width:100%;height:52vh;object-fit:cover;border-radius:14px;border:1px solid var(--rule);margin-top:2vh}
+  .split{display:flex;gap:3vw;flex:1;align-items:center}.col-left{flex:1 1 56%;min-width:0}.col-right{flex:0 0 40%}
+  .col-right img{width:100%;height:44vh;object-fit:cover;border-radius:14px;border:1px solid var(--rule)}
   .nav{position:fixed;bottom:2vh;left:50%;transform:translateX(-50%);color:var(--muted);font-family:monospace;font-size:14px}
+  @media print{
+    @page{size:landscape;margin:0}
+    body{background:#fff}
+    .slide{display:flex !important;page-break-after:always;width:100%;height:100vh}
+    .nav{display:none}
+  }
 </style></head><body>
 ${slidesHTML}
 <div class="nav"><span id="n">1</span> / ${slides.length} — arrow keys</div>

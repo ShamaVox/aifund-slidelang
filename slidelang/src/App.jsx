@@ -264,11 +264,23 @@ export default function App() {
   const applyRepairs = () => { const b = build(src); if (b.repairs.length) { setSrc(serialize(b.ast)); flash("Applied repairs"); } };
 
   const downloadHTML = () => {
-    const html = exportHTML(ast, slides);
+    const html = exportHTML(ast, slides, imageAssets);
     const blob = new Blob([html], { type: "text/html" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob); a.download = `${(ast.title || "deck").replace(/\W+/g, "-")}.html`; a.click();
     flash("Exported HTML");
+  };
+
+  // Print / PDF: render the self-contained deck HTML (with real images) in a new
+  // window and print it. Each slide is a page; use the browser's "Save as PDF".
+  const printDeck = () => {
+    const html = exportHTML(ast, slides, imageAssets);
+    const w = window.open("", "_blank");
+    if (!w) { flash("Allow pop-ups to export a PDF"); return; }
+    w.document.write(html);
+    w.document.close();
+    w.focus();
+    setTimeout(() => w.print(), 350);
   };
 
   const publish = async () => {
@@ -334,7 +346,7 @@ export default function App() {
             <div className="menu" onMouseLeave={() => setExportOpen(false)}>
               <button onClick={() => { publish(); setExportOpen(false); }}><Sparkles size={13} /> Publish link</button>
               <button onClick={() => { downloadHTML(); setExportOpen(false); }}><Download size={13} /> Export HTML</button>
-              <button onClick={() => { window.print(); setExportOpen(false); }}><Download size={13} /> Print / PDF</button>
+              <button onClick={() => { printDeck(); setExportOpen(false); }}><Download size={13} /> Print / PDF</button>
               <button onClick={() => { navigator.clipboard?.writeText(src); flash("Spec copied"); setExportOpen(false); }}><Copy size={13} /> Copy spec</button>
             </div>
           )}
@@ -413,7 +425,7 @@ export default function App() {
             <div className="themes">{Object.keys(THEMES).map((k) => (
               <button key={k} title={k} onClick={() => editTheme(k)} className={"sw" + (ast.theme === k ? " on" : "")} style={{ background: THEMES[k].bg }} />
             ))}</div>
-            {cur && <button className={"toggle editbtn" + (editMode ? " on" : "")} onClick={() => setEditMode((v) => !v)}>{editMode ? "✓ Done" : "✎ Edit"}</button>}
+            {cur && <button className={"toggle editbtn" + (editMode ? " on" : " ready")} onClick={() => setEditMode((v) => !v)}>{editMode ? "✓ Done" : "✎ Edit slide"}</button>}
             <button className={"toggle" + (showCode ? " on" : "")} onClick={() => setShowCode((v) => !v)} title="Show the deck source code"><FileCode2 size={13} /> Code</button>
             <button className={"toggle" + (showDetails ? " on" : "")} onClick={() => setShowDetails((v) => !v)} title="Diagnostics, agent log, KPIs"><Activity size={13} /> Details</button>
           </div>

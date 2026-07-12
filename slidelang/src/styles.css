@@ -1907,3 +1907,14 @@ div:hover>.ce-del {
 .canvas.editing .ce-del {
   opacity: 1
 }
+
+/* edit button stands out as the next action in review mode */
+.toggle.editbtn.ready {
+  border-color: rgba(232, 164, 76, .6);
+  color: var(--amber);
+  background: rgba(232, 164, 76, .08)
+}
+
+.toggle.editbtn.ready:hover {
+  background: rgba(232, 164, 76, .16)
+}

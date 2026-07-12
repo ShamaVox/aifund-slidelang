@@ -15,7 +15,9 @@ export function repair(ast) {
       repairs.push({ code: "W101", msg: `Synthesized heading "${s.heading}" (line ${s.line}).` });
     }
     if (s.heading && s.heading.length > LIMITS.headingChars) {
-      s.heading = s.heading.slice(0, LIMITS.headingChars - 1).trimEnd() + "…";
+      const cut = s.heading.slice(0, LIMITS.headingChars);
+      const at = cut.lastIndexOf(" ");
+      s.heading = (at > 40 ? cut.slice(0, at) : cut).trimEnd() + "…";
       repairs.push({ code: "W202", msg: `Trimmed long heading (line ${s.line}).` });
     }
     if (["chart.bar", "chart.line", "chart.area", "chart.pie"].includes(s.type)) {
