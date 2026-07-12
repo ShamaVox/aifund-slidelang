@@ -69,51 +69,70 @@ def _esc(t: str) -> str:
 
 
 class OpenAIProvider:
-    """Real image generation via OpenAI. Same generate() signature, same stable
-    asset id (so pinning/caching in the merge layer still work). On ANY failure
-    it falls back to the deterministic placeholder, so the app never dead-ends."""
+    """Real image generation via OpenAI. Tries a chain of models (so a
+    verification/access failure on one falls through to another), keeps the same
+    stable asset id, and surfaces the real error instead of silently degrading."""
     name = "openai"
 
     def __init__(self) -> None:
         import os
         self.key = os.getenv("OPENAI_API_KEY", "")
-        self.model = os.getenv("SLIDELANG_IMAGE_MODEL", "gpt-image-1")
-        self.size = os.getenv("SLIDELANG_IMAGE_SIZE", "1536x1024")
+        # try the preferred model first, then broadly-available fallbacks
+        preferred = os.getenv("SLIDELANG_IMAGE_MODEL", "gpt-image-1")
+        chain = [preferred, "dall-e-3", "dall-e-2"]
+        seen, self.models = set(), []
+        for m in chain:
+            if m and m not in seen:
+                seen.add(m); self.models.append(m)
         self.quality = os.getenv("SLIDELANG_IMAGE_QUALITY", "medium")
         self.timeout = float(os.getenv("SLIDELANG_IMAGE_TIMEOUT", "55"))
         self._fallback = PlaceholderProvider()
+
+    def _body_for(self, model: str, styled: str) -> dict:
+        # each model family wants a slightly different request shape
+        if model == "dall-e-2":
+            return {"model": model, "prompt": styled[:900], "n": 1, "size": "1024x1024", "response_format": "b64_json"}
+        if model == "dall-e-3":
+            q = "hd" if self.quality in ("high", "hd") else "standard"
+            return {"model": model, "prompt": styled, "n": 1, "size": "1792x1024", "quality": q, "response_format": "b64_json"}
+        # gpt-image-1
+        q = self.quality if self.quality in ("low", "medium", "high") else "medium"
+        return {"model": model, "prompt": styled, "n": 1, "size": "1536x1024", "quality": q}
 
     def generate(self, prompt: str) -> ImageAsset:
         import httpx
         import logging
         log = logging.getLogger("slidelang.image")
-        # style wrapper: make results read as clean editorial photography, not uncanny AI
         styled = (
             f"{prompt}. Professional editorial photograph, clean composition, natural "
             f"lighting, high detail, muted tasteful color palette, no text, no watermark."
         )
-        body = {"model": self.model, "prompt": styled, "n": 1, "size": self.size}
-        # quality: gpt-image-1 accepts low|medium|high (lower = faster/cheaper);
-        # dall-e-3 accepts standard|hd. dall-e-2 takes neither.
-        if self.model.startswith("gpt-image"):
-            body["quality"] = self.quality if self.quality in ("low", "medium", "high") else "medium"
-        elif self.model == "dall-e-3":
-            body["quality"] = "hd" if self.quality in ("high", "hd") else "standard"
-        # dall-e models need an explicit b64 response format; gpt-image-1 returns b64.
-        if self.model.startswith("dall-e"):
-            body["response_format"] = "b64_json"
         headers = {"Authorization": f"Bearer {self.key}", "Content-Type": "application/json"}
-        try:
-            with httpx.Client(timeout=self.timeout) as client:
-                resp = client.post("https://api.openai.com/v1/images/generations", json=body, headers=headers)
-            resp.raise_for_status()
-            data = resp.json()
-            b64 = data["data"][0]["b64_json"]
-            return ImageAsset(id=asset_id(prompt), data_url=f"data:image/png;base64,{b64}", provider=self.name)
-        except Exception as e:  # noqa: BLE001 - degrade softly on any failure
-            log.warning("openai image failed (%s); falling back to placeholder", type(e).__name__)
-            asset = self._fallback.generate(prompt)
-            return ImageAsset(id=asset.id, data_url=asset.data_url, provider="placeholder-fallback")
+        last_err = "unknown"
+        for model in self.models:
+            try:
+                with httpx.Client(timeout=self.timeout) as client:
+                    resp = client.post("https://api.openai.com/v1/images/generations",
+                                       json=self._body_for(model, styled), headers=headers)
+                if resp.status_code >= 400:
+                    # capture OpenAI's real message, then try the next model
+                    try:
+                        last_err = f"{model}: {resp.json().get('error', {}).get('message', resp.status_code)}"
+                    except Exception:
+                        last_err = f"{model}: http {resp.status_code}"
+                    log.warning("openai image (%s) rejected: %s", model, last_err)
+                    continue
+                b64 = resp.json()["data"][0]["b64_json"]
+                log.info("openai image ok via %s", model)
+                return ImageAsset(id=asset_id(prompt), data_url=f"data:image/png;base64,{b64}", provider=f"openai:{model}")
+            except Exception as e:  # noqa: BLE001
+                last_err = f"{model}: {type(e).__name__}"
+                log.warning("openai image (%s) failed: %s", model, last_err)
+                continue
+        # every model failed — fall back, but SURFACE why in the provider string
+        log.warning("all openai models failed; last error: %s", last_err)
+        asset = self._fallback.generate(prompt)
+        return ImageAsset(id=asset.id, data_url=asset.data_url, provider=f"placeholder-fallback ({last_err})")
 
 
 def get_provider():
