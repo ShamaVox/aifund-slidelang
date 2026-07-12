@@ -79,6 +79,7 @@ class OpenAIProvider:
         self.key = os.getenv("OPENAI_API_KEY", "")
         self.model = os.getenv("SLIDELANG_IMAGE_MODEL", "gpt-image-1")
         self.size = os.getenv("SLIDELANG_IMAGE_SIZE", "1536x1024")
+        self.quality = os.getenv("SLIDELANG_IMAGE_QUALITY", "medium")
         self.timeout = float(os.getenv("SLIDELANG_IMAGE_TIMEOUT", "55"))
         self._fallback = PlaceholderProvider()
 
@@ -92,7 +93,13 @@ class OpenAIProvider:
             f"lighting, high detail, muted tasteful color palette, no text, no watermark."
         )
         body = {"model": self.model, "prompt": styled, "n": 1, "size": self.size}
-        # dall-e-3 needs an explicit b64 response format; gpt-image-1 always returns b64.
+        # quality: gpt-image-1 accepts low|medium|high (lower = faster/cheaper);
+        # dall-e-3 accepts standard|hd. dall-e-2 takes neither.
+        if self.model.startswith("gpt-image"):
+            body["quality"] = self.quality if self.quality in ("low", "medium", "high") else "medium"
+        elif self.model == "dall-e-3":
+            body["quality"] = "hd" if self.quality in ("high", "hd") else "standard"
+        # dall-e models need an explicit b64 response format; gpt-image-1 returns b64.
         if self.model.startswith("dall-e"):
             body["response_format"] = "b64_json"
         headers = {"Authorization": f"Bearer {self.key}", "Content-Type": "application/json"}

@@ -440,11 +440,12 @@ export default function App() {
 
               {cur.type === "image" && (
                 <>
-                  <div className="field-label">Image prompt</div>
-                  <input value={cur.image || ""} onChange={(e) => editField({ image: e.target.value })} placeholder="describe the image" />
-                  <button className="btn" style={{ justifyContent: "center" }} disabled={imgBusy} onClick={() => generateImage(cur._index)}>
-                    {imgBusy ? <RefreshCw size={14} className="spin" /> : <Sparkles size={14} />} {cur.imageRef && imageAssets[cur.imageRef] ? "Regenerate image" : "Generate image"}
+                  <div className="field-label">Image prompt · edit and regenerate to change the picture</div>
+                  <input value={cur.image || ""} onChange={(e) => editField({ image: e.target.value })} placeholder="describe the image you want" />
+                  <button className="btn primary" style={{ justifyContent: "center" }} disabled={imgBusy} onClick={() => generateImage(cur._index, true)}>
+                    {imgBusy ? <><RefreshCw size={14} className="spin" /> Generating…</> : <><Sparkles size={14} /> {cur.imageRef && imageAssets[cur.imageRef] ? "Regenerate image" : "Generate image"}</>}
                   </button>
+                  {cur.imageRef && imageAssets[cur.imageRef] && <small>Edit the prompt above, then regenerate — the image updates to match.</small>}
                 </>
               )}
 
