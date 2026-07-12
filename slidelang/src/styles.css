@@ -370,3 +370,23 @@ div:hover > .ce-del{opacity:1}
 /* ---- slim inspector action bar ---- */
 .hint2{font-size:12px;color:var(--dim);line-height:1.45;margin-bottom:2px}
 .quickbar{display:flex;gap:8px;flex-wrap:wrap}
+
+/* ---- decluttered chrome: status pill, export menu, panel toggles ---- */
+.statuspill{display:inline-flex;align-items:center;gap:8px;border-radius:999px;padding:8px 13px;font-size:12.5px;font-weight:600;cursor:pointer;border:1px solid var(--line2);background:var(--panel2);color:var(--text);flex-shrink:0;white-space:nowrap;transition:border-color .14s}
+.statuspill .dotmark{width:7px;height:7px;border-radius:50%;display:inline-block}
+.statuspill.ok{border-color:rgba(70,192,182,.45);color:var(--teal)} .statuspill.ok .dotmark{background:var(--teal)}
+.statuspill.warn{border-color:rgba(232,164,76,.5);color:var(--amber)} .statuspill.warn .dotmark{background:var(--amber)}
+.statuspill.run{border-color:rgba(139,123,232,.5);color:var(--violet)}
+.statuspill:hover{border-color:var(--faint)}
+
+.exportmenu{position:relative}
+.exportmenu .menu{position:absolute;right:0;top:calc(100% + 6px);background:var(--panel2);border:1px solid var(--line2);border-radius:11px;padding:5px;display:flex;flex-direction:column;min-width:172px;z-index:60;box-shadow:var(--sh2)}
+.exportmenu .menu button{display:flex;align-items:center;gap:9px;background:none;border:none;color:var(--text);font-size:13px;font-weight:500;text-align:left;padding:9px 11px;border-radius:7px;cursor:pointer;font-family:var(--sans)}
+.exportmenu .menu button:hover{background:var(--panel3)}
+
+.toggle{display:inline-flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--line2);color:var(--dim);border-radius:8px;padding:6px 11px;font-size:12px;font-weight:500;cursor:pointer;font-family:var(--sans);transition:all .14s}
+.toggle:hover{border-color:var(--faint);color:var(--text)}
+.toggle.on{background:rgba(232,164,76,.12);border-color:rgba(232,164,76,.5);color:var(--amber)}
+
+/* wider, centered canvas when side panels are hidden */
+.preview .canvaswrap{max-width:1100px;margin:0 auto;width:100%}

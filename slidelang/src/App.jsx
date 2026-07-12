@@ -80,6 +80,12 @@ export default function App() {
   const [imgBusy, setImgBusy] = useState(false);
   const [view, setView] = useState("home");      // "home" landing | "studio" IDE
   const [apiOnline, setApiOnline] = useState(false);
+  // progressive disclosure: hide developer surfaces until asked. The slide is the hero.
+  const [showCode, setShowCode] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
+  const [pipeOpen, setPipeOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
+  const [showRegen, setShowRegen] = useState(false);
 
   const built = useMemo(() => build(src, { plugins: DEFAULT_PLUGINS }), [src]);
   const isEmpty = !src.trim();
@@ -272,58 +278,77 @@ export default function App() {
         </div>
         <div className="spacer" />
         <button className="btn" onClick={() => { resetDeckState(); setSrc(""); setView("home"); }}><FileCode2 size={14} /> New deck</button>
-        <button className="btn" onClick={() => setPresent(true)}><Play size={14} /> Present</button>
-        <button className="btn" onClick={publish}><Sparkles size={14} /> Publish</button>
-        <button className="btn" onClick={downloadHTML}><Download size={14} /> Export HTML</button>
-        <button className="btn" onClick={() => { window.print(); }}><Download size={14} /> PDF</button>
-        <button className="btn" onClick={() => { navigator.clipboard?.writeText(src); flash("Spec copied"); }}><Copy size={14} /> Copy spec</button>
+        <button className="btn primary" onClick={() => setPresent(true)}><Play size={14} /> Present</button>
+        <div className="exportmenu">
+          <button className="btn" onClick={() => setExportOpen((v) => !v)}><Download size={14} /> Export ▾</button>
+          {exportOpen && (
+            <div className="menu" onMouseLeave={() => setExportOpen(false)}>
+              <button onClick={() => { publish(); setExportOpen(false); }}><Sparkles size={13} /> Publish link</button>
+              <button onClick={() => { downloadHTML(); setExportOpen(false); }}><Download size={13} /> Export HTML</button>
+              <button onClick={() => { window.print(); setExportOpen(false); }}><Download size={13} /> Print / PDF</button>
+              <button onClick={() => { navigator.clipboard?.writeText(src); flash("Spec copied"); setExportOpen(false); }}><Copy size={13} /> Copy spec</button>
+            </div>
+          )}
+        </div>
       </header>
 
       <div className="promptbar">
         <div className="row">
           <div className="inputwrap">
             <Sparkles size={15} color={C.amber} className="ic" />
-            <input value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="Describe a deck for an agent to author…" />
+            <input value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="Describe a deck for an agent to author…" onKeyDown={(e) => { if (e.key === "Enter" && !running && prompt.trim()) generate(true); }} />
           </div>
           <button className="btn primary" disabled={running} onClick={() => generate(true)}>
-            {running ? <RefreshCw size={14} className="spin" /> : <Bot size={14} />} Agent authors (live model)
+            {running ? <RefreshCw size={14} className="spin" /> : <Bot size={14} />} Generate
           </button>
-          <button className="btn" disabled={running} onClick={() => generate(false)}><Zap size={14} /> Simulated agent</button>
-        </div>
-        <div className="pipeline">
-          {STAGES.map((st, i) => {
-            const on = active[st.id]; const Ic = st.icon;
-            return (
-              <React.Fragment key={st.id}>
-                <div className={"stage" + (on ? " on" : "")}><Ic size={14} /><span>{st.label}</span></div>
-                {i < STAGES.length - 1 && <ChevronRight size={13} color={C.faint} />}
-              </React.Fragment>
-            );
-          })}
-          <div className="spacer" />
-          <div className="counts">
-            <span style={{ color: errors.length ? C.coral : C.teal }}>{errors.length} err</span>
-            <span style={{ color: warnings.length ? C.amber : C.dim }}>{warnings.length} warn</span>
-            <span style={{ color: C.violet }}>{repairs.length} repaired</span>
-            <span style={{ color: C.dim }}>{slides.length} slides</span>
-          </div>
+          <button className="btn" disabled={running} onClick={() => generate(false)} title="Deterministic, no API key"><Zap size={14} /> Sim</button>
+          {(slides.length > 0 || running) && (
+            <button className={"statuspill " + (running ? "run" : errors.length ? "warn" : "ok")} onClick={() => setPipeOpen((v) => !v)} title="Show the compile pipeline">
+              {running ? <RefreshCw size={12} className="spin" /> : <span className="dotmark" />}
+              {running ? "Working…" : errors.length ? `${errors.length} error${errors.length > 1 ? "s" : ""}${repairs.length ? ` · ${repairs.length} fixed` : ""}` : `Ready · ${slides.length} slide${slides.length === 1 ? "" : "s"}`}
+            </button>
+          )}
+          {baseAst && (
+            <button className={"btn" + (showRegen ? " primary" : "")} onClick={() => setShowRegen((v) => !v)}><RefreshCw size={14} /> Regenerate</button>
+          )}
         </div>
 
-        {baseAst && (
-          <div className="row updaterow">
-            <span className="uplbl"><RefreshCw size={13} /> Regenerate</span>
-            <div className="inputwrap">
-              <input value={updatePrompt} onChange={(e) => setUpdatePrompt(e.target.value)} placeholder="How should the agent update the deck?" />
+        {(pipeOpen || running) && (
+          <div className="pipeline">
+            {STAGES.map((st, i) => {
+              const on = active[st.id]; const Ic = st.icon;
+              return (
+                <React.Fragment key={st.id}>
+                  <div className={"stage" + (on ? " on" : "")}><Ic size={14} /><span>{st.label}</span></div>
+                  {i < STAGES.length - 1 && <ChevronRight size={13} color={C.faint} />}
+                </React.Fragment>
+              );
+            })}
+            <div className="spacer" />
+            <div className="counts">
+              <span style={{ color: errors.length ? C.coral : C.teal }}>{errors.length} err</span>
+              <span style={{ color: warnings.length ? C.amber : C.dim }}>{warnings.length} warn</span>
+              <span style={{ color: C.violet }}>{repairs.length} repaired</span>
+              <span style={{ color: C.dim }}>{slides.length} slides</span>
             </div>
-            <button className="btn primary" disabled={running} onClick={() => updateDeck(true)}><RefreshCw size={14} /> Update &amp; merge (live)</button>
-            <button className="btn" disabled={running} onClick={() => updateDeck(false)}><RefreshCw size={14} /> Sim</button>
+          </div>
+        )}
+
+        {showRegen && baseAst && (
+          <div className="row updaterow">
+            <span className="uplbl"><RefreshCw size={13} /> Update</span>
+            <div className="inputwrap">
+              <input value={updatePrompt} onChange={(e) => setUpdatePrompt(e.target.value)} placeholder="How should the agent update the deck? (your edits are preserved)" />
+            </div>
+            <button className="btn primary" disabled={running} onClick={() => updateDeck(true)}><RefreshCw size={14} /> Update &amp; merge</button>
+            <button className="btn" disabled={running} onClick={() => updateDeck(false)}>Sim</button>
             <span className="ovbadge">{Object.keys(overrides).length} edited · {Object.values(overrides).filter((o) => o._pinned).length} pinned</span>
           </div>
         )}
       </div>
 
-      <div className="main">
-        {/* editor */}
+      <div className="main" style={{ gridTemplateColumns: [showCode ? "minmax(280px,.8fr)" : null, "minmax(440px,1.7fr)", showDetails ? "minmax(300px,.85fr)" : null].filter(Boolean).join(" ") }}>
+        {showCode && (
         <section className="col editor">
           <div className="head"><FileCode2 size={14} /><span>deck.slide</span><div className="spacer" /><small>{lineCount} lines</small></div>
           <div className="code">
@@ -331,20 +356,23 @@ export default function App() {
             <textarea value={src} onChange={(e) => setSrc(e.target.value)} spellCheck={false} placeholder={SPEC_PLACEHOLDER} />
           </div>
         </section>
+        )}
 
         {/* preview */}
         <section className="col preview">
-          <div className="head"><Eye size={14} /><span>Preview</span><div className="spacer" />
+          <div className="head"><Eye size={14} /><span>Slide</span><div className="spacer" />
             <div className="themes">{Object.keys(THEMES).map((k) => (
               <button key={k} title={k} onClick={() => editTheme(k)} className={"sw" + (ast.theme === k ? " on" : "")} style={{ background: THEMES[k].bg }} />
             ))}</div>
+            <button className={"toggle" + (showCode ? " on" : "")} onClick={() => setShowCode((v) => !v)} title="Show the deck source code"><FileCode2 size={13} /> Code</button>
+            <button className={"toggle" + (showDetails ? " on" : "")} onClick={() => setShowDetails((v) => !v)} title="Diagnostics, agent log, KPIs"><Activity size={13} /> Details</button>
           </div>
           <div className="canvaswrap">
             {cur && <div className="edit-hint">✎ click any text on the slide to edit</div>}
             <div className="canvas">{cur ? <SlideView s={cur} theme={ast.theme} scale={0.62} assets={imageAssets} deckTitle={ast.title} total={slides.length} editable onEdit={editField} /> : (
               <div className="welcome">
-                <div className="wtitle">Start a deck</div>
-                <div className="wsub">Type a prompt above and click <b>Agent authors</b> — or write a spec on the left. Both are live.</div>
+                <div className="wtitle">No deck yet</div>
+                <div className="wsub">Type a prompt above and hit <b>Generate</b>. Then click any text on the slide to edit it.</div>
               </div>
             )}</div>
             <div className="thumbs">
@@ -415,6 +443,7 @@ export default function App() {
         </section>
 
         {/* panels */}
+        {showDetails && (
         <section className="col panels">
           <div className="tabs">
             {[["diagnostics", "Diagnostics", ScanLine], ["review", "Reviewer", Star], ["kpi", "KPIs", Activity], ["agent", "Agent log", Terminal], ["repairs", "Repairs", Wrench]].map(([id, label, Ic]) => (
@@ -474,6 +503,7 @@ export default function App() {
             )}
           </div>
         </section>
+        )}
       </div>
 
       {toast && <div className="toast">{toast}</div>}
