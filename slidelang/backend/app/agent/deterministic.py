@@ -32,46 +32,49 @@ def _title_from(prompt: str) -> str:
 def simulate_author(prompt: str) -> str:
     p = (prompt or "").lower()
     title = _title_from(prompt)
+    subject = title.lower()
     is_pitch = bool(re.search(r"pitch|seed|invest|raise|fundrais|series [a-c]|deck", p))
     is_tech = bool(re.search(r"architect|technical|system|pipeline|design review|infra|api|engineering", p))
-    theme = "paper" if re.search(r"light|paper|clean|formal", p) else "forest" if re.search(r"green|forest|climate|sustain", p) else "sunrise" if re.search(r"consumer|brand|retail|launch", p) else "midnight"
-    subtitle = "Seed round · 2026" if is_pitch else "Technical design review" if is_tech else "A structured overview"
+    theme = "paper" if re.search(r"light|paper|clean|formal", p) else "forest" if re.search(r"green|forest|climate|sustain", p) else "sunrise" if re.search(r"consumer|brand|retail|launch|buyer|shop", p) else "midnight"
+    subtitle = "Seed round" if is_pitch else "Technical design review" if is_tech else "A structured overview"
 
     L = [f'deck "{title}"', f"theme {theme}", ""]
     L += ["slide title", f'  heading "{title}"', f'  subtitle "{subtitle}"',
           '  notes "Open with the one-line thesis, then the problem."', ""]
-    L += ["slide section", '  heading "The problem"', ""]
 
+    # A prompt-derived, honestly-generic outline. No fabricated metrics, no
+    # SlideLang-specific claims. This is the safety net, so it stays neutral and
+    # clearly reflects the prompt rather than pretending to be a specific company.
     if is_pitch:
-        L += ["dataset growth", "  row Q1 1.2", "  row Q2 2.0", "  row Q3 3.1", "  row Q4 4.4", ""]
-        L += ["slide bullets", '  heading "Teams replaced headcount with agents — but output is brittle"',
-              '  point "Generation is solved; trust and editability are not"',
-              '  point "Repeatable work still costs hours of hand-tuning"',
-              '  point "The bottleneck moved from making to trusting"', ""]
-        L += ["slide metrics", '  heading "The numbers are moving the right way"',
-              '  metric "ARR" "$4.4M" "+42%"', '  metric "Net retention" "131%" "+9pt"', '  metric "Burn multiple" "0.8x" "-0.3x"', ""]
-        L += ["slide chart.area", '  heading "ARR nearly quadrupled across four quarters"', "  bind growth", ""]
-        L += ["slide math", '  heading "Efficiency is the whole story"', '  formula "burn = \\\\frac{net\\\\ burn}{net\\\\ new\\\\ ARR}"', ""]
+        L += ["slide bullets", f'  heading "The problem {subject} solves"',
+              '  point "Describe the pain your customer feels today"',
+              '  point "Explain why existing tools fall short"',
+              '  point "Show why now is the moment"', ""]
+        L += ["slide bullets", f'  heading "How {title} works"',
+              '  point "The core insight behind the product"',
+              '  point "What the product actually does for the user"',
+              '  point "Why it is hard to copy"', ""]
+        L += ["slide metrics", '  heading "Traction (replace with your real numbers)"',
+              '  metric "Revenue" "—" ""', '  metric "Growth" "—" ""', '  metric "Retention" "—" ""', ""]
+        L += ["slide chart.line", '  heading "Growth over time (replace with your data)"', "  data Q1 1, Q2 2, Q3 3, Q4 4", ""]
     elif is_tech:
-        L += ["slide bullets", '  heading "One pipeline, four guarantees"',
-              '  point "Prompt or spec intake feeds an agent planner"',
-              '  point "The compiler lowers the spec to a typed layout IR"',
-              '  point "Validation and repair run before anything renders"',
-              '  point "Every stage emits a diagnostic with a line number"', ""]
-        L += ["slide chart.bar", '  heading "The compile budget is dominated by planning, not rendering"', "  data Plan 800, Compile 40, Lint 6, Render 120", ""]
-        L += ["slide math", '  heading "Confidence is the product of every check"', '  formula "score = \\\\prod_{i} check_i"', ""]
+        L += ["slide bullets", f'  heading "What {title} is"',
+              '  point "The problem this system addresses"',
+              '  point "The core design principle"',
+              '  point "The main components and how they connect"', ""]
+        L += ["slide bullets", '  heading "Key design decisions"',
+              '  point "Decision one and the tradeoff behind it"',
+              '  point "Decision two and why the alternative was rejected"', ""]
+        L += ["slide chart.bar", '  heading "Where the work goes (replace with your data)"', "  data Plan 3, Build 5, Test 2, Ship 1", ""]
     else:
-        L += ["slide bullets", '  heading "Structured beats static"',
-              '  point "Editable, reviewable output — not flattened images"',
-              '  point "Validation and repair are built in, not bolted on"',
-              '  point "Publish or present from one workflow"', ""]
-        L += ["slide metrics", '  heading "What good looks like"',
-              '  metric "Time to first draft" "20s" "-90%"', '  metric "Edits preserved" "100%" "no clobber"', '  metric "Manual fixes" "0" "auto-repaired"', ""]
-        L += ["slide chart.line", '  heading "Adoption compounds once the workflow clicks"', "  data Q1 20, Q2 55, Q3 90, Q4 140", ""]
+        L += ["slide bullets", f'  heading "Overview of {subject}"',
+              '  point "The first key point"',
+              '  point "The second key point"',
+              '  point "The third key point"', ""]
+        L += ["slide metrics", '  heading "Key numbers (replace with your data)"',
+              '  metric "Metric one" "—" ""', '  metric "Metric two" "—" ""', ""]
 
-    L += ["slide image", '  heading "Grounded in the real artifact, not a mockup"',
-          f'  image "a clean editorial photograph representing {title.lower()}, soft natural light"', ""]
-    L += ["slide quote", '  quote "The model is the easy part. The trust layer is the product."', '  cite "SlideLang"', ""]
-    L += ["slide bullets", '  heading "The one thing to remember"',
-          '  point "Structured authoring beats prompt-to-pixels"', '  point "Trust is the wedge"', ""]
+    L += ["slide bullets", '  heading "What to remember"',
+          '  point "The single most important takeaway"',
+          '  point "The clear next step"', ""]
     return "\n".join(L)

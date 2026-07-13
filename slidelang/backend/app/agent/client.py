@@ -33,7 +33,9 @@ async def call_model(prompt: str, system: str) -> ModelResult:
 
     body = {
         "model": settings.model,
-        "max_tokens": 8000,
+        # A deck spec is ~1.5-3k tokens; 4000 is ample headroom and generates far
+        # faster than 8000, which cuts the model call time and the timeout risk.
+        "max_tokens": 4000,
         # Prompt caching: the system prompt (grammar + authoring rules) is large and
         # identical on every call, so we cache it. Repeat calls within the cache TTL
         # skip re-processing it, which cuts latency and cost. Safe if under the min

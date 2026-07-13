@@ -469,102 +469,102 @@ export default function App() {
             <button className={"toggle" + (showDetails ? " on" : "")} onClick={() => setShowDetails((v) => !v)} title="Diagnostics, agent log, KPIs"><Activity size={13} /> Details</button>
           </div>
           <div className={"editspace" + (cur && editMode ? " editing" : "")}>
-            <div className="canvaswrap">
-              {cur && editMode && <div className="edit-hint">✎ editing — click any highlighted text to change it</div>}
-              <div className={"canvas" + (editMode ? " editing" : "")}>{cur ? <SlideView s={cur} theme={ast.theme} scale={0.62} assets={imageAssets} deckTitle={ast.title} total={slides.length} editable={editMode} onEdit={editField} /> : (
-                <div className="welcome">
-                  <div className="wtitle">No deck yet</div>
-                  <div className="wsub">Type a prompt above and hit <b>Generate</b>. Review it, then click <b>Edit</b> to change anything.</div>
-                </div>
-              )}</div>
-              <div className="thumbs">
-                {slides.map((s, i) => (
-                  <button key={i} onClick={() => setSel(i)} className={"thumb" + (i === sel ? " on" : "")}>
-                    <SlideView s={s} theme={ast.theme} scale={0.12} assets={imageAssets} />
-                    <span>{i + 1}</span>
-                  </button>
-                ))}
+          <div className="canvaswrap">
+            {cur && editMode && <div className="edit-hint">✎ editing — click any highlighted text to change it</div>}
+            <div className={"canvas" + (editMode ? " editing" : "")}>{cur ? <SlideView s={cur} theme={ast.theme} scale={0.62} assets={imageAssets} deckTitle={ast.title} total={slides.length} editable={editMode} onEdit={editField} /> : (
+              <div className="welcome">
+                <div className="wtitle">No deck yet</div>
+                <div className="wsub">Type a prompt above and hit <b>Generate</b>. Review it, then click <b>Edit</b> to change anything.</div>
               </div>
+            )}</div>
+            <div className="thumbs">
+              {slides.map((s, i) => (
+                <button key={i} onClick={() => setSel(i)} className={"thumb" + (i === sel ? " on" : "")}>
+                  <SlideView s={s} theme={ast.theme} scale={0.12} assets={imageAssets} />
+                  <span>{i + 1}</span>
+                </button>
+              ))}
             </div>
-            {cur && editMode && (
-              <div className="inspector">
-                <div className="lbl">
-                  ✎ Edit slide {sel + 1} · {cur.type}
-                  <div className="spacer" />
-                  {cur.id && overrides[cur.id] && !overrides[cur.id]._pinned && Object.keys(overrides[cur.id]).length > 0 && <span className="edited">edited</span>}
-                  <button className={"pin" + (overrides[cur?.id]?._pinned ? " on" : "")} onClick={togglePin} title="Protect this slide on regenerate">
-                    {overrides[cur?.id]?._pinned ? "📌 pinned" : "pin"}
-                  </button>
-                </div>
-                <div className="hint2">Click any text on the slide to edit it. Buttons below add or remove structure.</div>
-                <div className="quickbar">
-                  {cur.type === "bullets" && <button className="rowadd" onClick={() => editField({ points: [...(cur.points || []), "New point"] })}>+ bullet</button>}
-                  {cur.type === "metrics" && <button className="rowadd" onClick={() => editField({ metrics: [...(cur.metrics || []), { label: "Metric", value: "0", delta: "" }] })}>+ metric</button>}
-                  {cur.type === "table" && <button className="rowadd" onClick={() => editField({ rows: [...(cur.rows || []), (cur.cols || ["", "", ""]).map(() => "")] })}>+ row</button>}
-                  {cur.type && cur.type.startsWith("chart.") && !cur.bind && <button className="rowadd" onClick={() => editField({ data: [...(cur.data || []), { name: "X", value: 0 }] })}>+ data point</button>}
-                  {/* section, title, and quote slides have no body; let the user add bullet content */}
-                  {(cur.type === "section" || cur.type === "title" || cur.type === "quote") && (
-                    <button className="rowadd" onClick={() => editField({ type: "bullets", points: cur.points && cur.points.length ? cur.points : ["Add your point here"], subtitle: undefined, quote: undefined, cite: undefined })}>+ add bullets</button>
-                  )}
-                </div>
-
-                {cur.type && cur.type.startsWith("chart.") && !cur.bind && (
-                  <>
-                    <div className="field-label">Chart data · label / value</div>
-                    {(cur.data || []).map((d, i) => (
-                      <div key={i} className="editrow metricrow">
-                        <input value={d.name} onChange={(e) => editField({ data: cur.data.map((x, j) => j === i ? { ...x, name: e.target.value } : x) })} />
-                        <input value={d.value} onChange={(e) => editField({ data: cur.data.map((x, j) => j === i ? { ...x, value: Number(e.target.value) || 0 } : x) })} />
-                        <button className="rowdel" onClick={() => editField({ data: cur.data.filter((_, j) => j !== i) })}>×</button>
-                      </div>
-                    ))}
-                  </>
-                )}
-                {cur.type && cur.type.startsWith("chart.") && cur.bind && (
-                  <div className="field-label">Bound to dataset "{cur.bind}" — edit rows in the spec (updates everywhere)</div>
-                )}
-
-                {cur.type === "math" && (
-                  <>
-                    <div className="field-label">Formula (LaTeX)</div>
-                    <input value={cur.formula || ""} onChange={(e) => editField({ formula: e.target.value })} placeholder="LTV = ARPU \\times \\frac{1}{churn}" />
-                  </>
-                )}
-
-                {cur.type === "image" && (
-                  <>
-                    <div className="field-label">Image prompt · edit and regenerate to change the picture</div>
-                    <input value={cur.image || ""} onChange={(e) => editField({ image: e.target.value })} placeholder="describe the image you want" />
-                    <button className="btn primary" style={{ justifyContent: "center" }} disabled={imgBusy} onClick={() => generateImage(cur._index, true)}>
-                      {imgBusy ? <><RefreshCw size={14} className="spin" /> Generating…</> : <><Sparkles size={14} /> {cur.imageRef && imageAssets[cur.imageRef] ? "Regenerate image" : "Generate image"}</>}
-                    </button>
-                    {cur.imageRef && imageAssets[cur.imageRef] && <small>Edit the prompt above, then regenerate — the image updates to match.</small>}
-                  </>
-                )}
-
-                {/* Universal image control: add a photo BESIDE any content slide, per-slide */}
-                {cur.type !== "image" && cur.type !== "section" && (
-                  cur.image != null ? (
-                    <>
-                      <div className="field-label">Image · shown beside this slide</div>
-                      <input value={cur.image} onChange={(e) => editField({ image: e.target.value })} placeholder="describe the image" />
-                      <div style={{ display: "flex", gap: 8 }}>
-                        <button className="btn primary" style={{ flex: 1, justifyContent: "center" }} disabled={imgBusy} onClick={() => generateImage(cur._index, true)}>
-                          {imgBusy ? <><RefreshCw size={14} className="spin" /> Generating…</> : <><Sparkles size={14} /> {cur.imageRef && imageAssets[cur.imageRef] ? "Regenerate" : "Generate image"}</>}
-                        </button>
-                        <button className="btn" onClick={() => editField({ image: null, imageRef: null })}>Remove</button>
-                      </div>
-                    </>
-                  ) : (
-                    <button className="rowadd" onClick={() => editField({ image: "a relevant editorial photograph, natural light" })}>＋ add an image to this slide</button>
-                  )
-                )}
-
-                <div className="field-label">Speaker notes</div>
-                <textarea rows={2} value={cur.notes || ""} onChange={(e) => editField({ notes: e.target.value })} placeholder="Notes shown in Present mode…" />
-                <small>Edits click straight into the slide and survive regeneration — round-trip, no clobber.</small>
+          </div>
+          {cur && editMode && (
+            <div className="inspector">
+              <div className="lbl">
+                ✎ Edit slide {sel + 1} · {cur.type}
+                <div className="spacer" />
+                {cur.id && overrides[cur.id] && !overrides[cur.id]._pinned && Object.keys(overrides[cur.id]).length > 0 && <span className="edited">edited</span>}
+                <button className={"pin" + (overrides[cur?.id]?._pinned ? " on" : "")} onClick={togglePin} title="Protect this slide on regenerate">
+                  {overrides[cur?.id]?._pinned ? "📌 pinned" : "pin"}
+                </button>
               </div>
-            )}
+              <div className="hint2">Click any text on the slide to edit it. Buttons below add or remove structure.</div>
+              <div className="quickbar">
+                {cur.type === "bullets" && <button className="rowadd" onClick={() => editField({ points: [...(cur.points || []), "New point"] })}>+ bullet</button>}
+                {cur.type === "metrics" && <button className="rowadd" onClick={() => editField({ metrics: [...(cur.metrics || []), { label: "Metric", value: "0", delta: "" }] })}>+ metric</button>}
+                {cur.type === "table" && <button className="rowadd" onClick={() => editField({ rows: [...(cur.rows || []), (cur.cols || ["", "", ""]).map(() => "")] })}>+ row</button>}
+                {cur.type && cur.type.startsWith("chart.") && !cur.bind && <button className="rowadd" onClick={() => editField({ data: [...(cur.data || []), { name: "X", value: 0 }] })}>+ data point</button>}
+                {/* section, title, and quote slides have no body; let the user add bullet content */}
+                {(cur.type === "section" || cur.type === "title" || cur.type === "quote") && (
+                  <button className="rowadd" onClick={() => editField({ type: "bullets", points: cur.points && cur.points.length ? cur.points : ["Add your point here"], subtitle: undefined, quote: undefined, cite: undefined })}>+ add bullets</button>
+                )}
+              </div>
+
+              {cur.type && cur.type.startsWith("chart.") && !cur.bind && (
+                <>
+                  <div className="field-label">Chart data · label / value</div>
+                  {(cur.data || []).map((d, i) => (
+                    <div key={i} className="editrow metricrow">
+                      <input value={d.name} onChange={(e) => editField({ data: cur.data.map((x, j) => j === i ? { ...x, name: e.target.value } : x) })} />
+                      <input value={d.value} onChange={(e) => editField({ data: cur.data.map((x, j) => j === i ? { ...x, value: Number(e.target.value) || 0 } : x) })} />
+                      <button className="rowdel" onClick={() => editField({ data: cur.data.filter((_, j) => j !== i) })}>×</button>
+                    </div>
+                  ))}
+                </>
+              )}
+              {cur.type && cur.type.startsWith("chart.") && cur.bind && (
+                <div className="field-label">Bound to dataset "{cur.bind}" — edit rows in the spec (updates everywhere)</div>
+              )}
+
+              {cur.type === "math" && (
+                <>
+                  <div className="field-label">Formula (LaTeX)</div>
+                  <input value={cur.formula || ""} onChange={(e) => editField({ formula: e.target.value })} placeholder="LTV = ARPU \\times \\frac{1}{churn}" />
+                </>
+              )}
+
+              {cur.type === "image" && (
+                <>
+                  <div className="field-label">Image prompt · edit and regenerate to change the picture</div>
+                  <input value={cur.image || ""} onChange={(e) => editField({ image: e.target.value })} placeholder="describe the image you want" />
+                  <button className="btn primary" style={{ justifyContent: "center" }} disabled={imgBusy} onClick={() => generateImage(cur._index, true)}>
+                    {imgBusy ? <><RefreshCw size={14} className="spin" /> Generating…</> : <><Sparkles size={14} /> {cur.imageRef && imageAssets[cur.imageRef] ? "Regenerate image" : "Generate image"}</>}
+                  </button>
+                  {cur.imageRef && imageAssets[cur.imageRef] && <small>Edit the prompt above, then regenerate — the image updates to match.</small>}
+                </>
+              )}
+
+              {/* Universal image control: add a photo BESIDE any content slide, per-slide */}
+              {(cur.type === "bullets" || cur.type === "metrics" || cur.type === "table" || cur.type === "math" || (cur.type && cur.type.startsWith("chart."))) && (
+                cur.image != null ? (
+                  <>
+                    <div className="field-label">Image · shown beside this slide</div>
+                    <input value={cur.image} onChange={(e) => editField({ image: e.target.value })} placeholder="describe the image" />
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <button className="btn primary" style={{ flex: 1, justifyContent: "center" }} disabled={imgBusy} onClick={() => generateImage(cur._index, true)}>
+                        {imgBusy ? <><RefreshCw size={14} className="spin" /> Generating…</> : <><Sparkles size={14} /> {cur.imageRef && imageAssets[cur.imageRef] ? "Regenerate" : "Generate image"}</>}
+                      </button>
+                      <button className="btn" onClick={() => editField({ image: null, imageRef: null })}>Remove</button>
+                    </div>
+                  </>
+                ) : (
+                  <button className="rowadd" onClick={() => editField({ image: "a relevant editorial photograph, natural light" })}>＋ add an image to this slide</button>
+                )
+              )}
+
+              <div className="field-label">Speaker notes</div>
+              <textarea rows={2} value={cur.notes || ""} onChange={(e) => editField({ notes: e.target.value })} placeholder="Notes shown in Present mode…" />
+              <small>Edits click straight into the slide and survive regeneration — round-trip, no clobber.</small>
+            </div>
+          )}
           </div>
         </section>
 
