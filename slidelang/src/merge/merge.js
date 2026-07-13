@@ -49,18 +49,23 @@ export function threeWayMerge(oldBase, newBase, overrides = {}) {
       }
     });
 
-    // Image asset reuse vs. regenerate:
-    //  - pinned slide            -> keep the existing image (edit-in-place feel)
-    //  - prompt unchanged        -> reuse the cached asset (no needless regen)
-    //  - prompt changed, unpinned-> drop the asset so it regenerates from the new prompt
-    if (ns.type === "image") {
+    // Image asset reuse vs. regenerate, for ANY slide carrying an image (a photo
+    // beside content, or a full image slide):
+    //  - human generated/edited an image (override imageRef) -> ALWAYS keep it
+    //  - pinned, or prompt unchanged                          -> reuse the old asset
+    //  - prompt changed, unpinned, no override                -> drop so it regenerates
+    if (ns.image || (os && os.image)) {
       const pinned = !!ov._pinned;
-      if (pinned || eq(merged.image, os.image)) {
-        merged.imageRef = os.imageRef || null;
-        if (pinned && os.imageRef) diff.push({ slideId: ns.id, heading: ns.heading, field: "image", kind: "preserved", mine: "pinned image kept" });
+      const hasOvImage = Object.prototype.hasOwnProperty.call(ov, "imageRef") && ov.imageRef;
+      if (hasOvImage) {
+        merged.imageRef = ov.imageRef; // your generated image wins, never clobbered
+        diff.push({ slideId: ns.id, heading: ns.heading, field: "image", kind: "preserved", mine: "your image kept" });
+      } else if (pinned || eq(merged.image, os && os.image)) {
+        merged.imageRef = (os && os.imageRef) || ns.imageRef || null;
+        if (pinned && os && os.imageRef) diff.push({ slideId: ns.id, heading: ns.heading, field: "image", kind: "preserved", mine: "pinned image kept" });
       } else {
-        merged.imageRef = null; // regenerate to match the new prompt
-        if (os.imageRef) diff.push({ slideId: ns.id, heading: ns.heading, field: "image", kind: "changed", theirs: "new image (prompt changed)" });
+        merged.imageRef = null; // prompt changed -> regenerate to match
+        if (os && os.imageRef) diff.push({ slideId: ns.id, heading: ns.heading, field: "image", kind: "changed", theirs: "new image (prompt changed)" });
       }
     }
     return merged;
