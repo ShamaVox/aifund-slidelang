@@ -2,7 +2,8 @@ SlideLang
 
 Deck-as-code. A compiler for presentations: humans and AI agents author a structured spec, and the compiler makes it correct, repairable, and safe to edit.
 
-Live demo
+Live demo 
+https://aifund-slidelang.vercel.app/
 
 
 Generation is solved. Trust is the product.
